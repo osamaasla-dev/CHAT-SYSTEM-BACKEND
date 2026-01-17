@@ -17,18 +17,18 @@ export class SessionRepository {
     return this.prisma.session.updateMany({ where, data });
   }
 
-  findUnique(where: Prisma.SessionWhereUniqueInput) {
+  findUnique(where: Prisma.SessionWhereUniqueInput): Promise<Session | null> {
     return this.prisma.session.findUnique({ where });
   }
 
-  findMany(args: Prisma.SessionFindManyArgs) {
+  findMany(args: Prisma.SessionFindManyArgs): Promise<Session[]> {
     return this.prisma.session.findMany(args);
   }
 
   update(
     where: Prisma.SessionWhereUniqueInput,
     data: Prisma.SessionUpdateInput,
-  ) {
+  ): Promise<Session> {
     return this.prisma.session.update({ where, data });
   }
 }

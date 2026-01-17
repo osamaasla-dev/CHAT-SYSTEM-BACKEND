@@ -6,7 +6,9 @@ import { User } from '@prisma/client';
 export class ProfileService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async getProfile(userId: string): Promise<Omit<User, 'password'>> {
+  async getProfile(
+    userId: string,
+  ): Promise<Pick<User, 'id' | 'name' | 'email' | 'role'>> {
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {

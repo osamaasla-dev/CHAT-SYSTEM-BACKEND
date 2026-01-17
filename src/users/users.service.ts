@@ -1,13 +1,11 @@
 import {
   Injectable,
-  ConflictException,
   NotFoundException,
   UnauthorizedException,
   BadRequestException,
+  ConflictException,
 } from '@nestjs/common';
-import { User } from '@prisma/client';
-import { UpdateUserDto } from './dto/update-user.dto';
-import type { FindAllResponse } from './types/user.type';
+import { Prisma, User, UserStatus } from '@prisma/client';
 import { UsersRepository } from './repositories/users.repository';
 import * as bcrypt from 'bcrypt';
 
@@ -23,22 +21,9 @@ export class UsersService {
     return user;
   }
 
-  async findAll(options: {
-    limit: number;
-    cursor?: string;
-  }): Promise<FindAllResponse> {
-    const users = await this.usersRepository.findMany({
-      take: options.limit + 1,
-      cursor: options.cursor ? { id: options.cursor } : undefined,
-      orderBy: {
-        id: 'asc',
-      },
-    });
-    let nextCursor: string | null = null;
-    if (users.length > options.limit) {
-      nextCursor = users.pop()?.id || null;
-    }
-    return { items: users, meta: { limit: options.limit, nextCursor } };
+  async findAll(): Promise<User[]> {
+    const users = await this.usersRepository.findMany({});
+    return users;
   }
 
   async findById(id: string): Promise<User | null> {
@@ -49,17 +34,83 @@ export class UsersService {
     return this.usersRepository.findUnique({ email });
   }
 
-  async createUser(data: {
-    name: string;
-    email: string;
-    password: string;
-  }): Promise<User> {
+  async findByPendingEmail(email: string): Promise<User | null> {
+    return this.usersRepository.findUnique({ pendingEmail: email });
+  }
+
+  async createUser(data: Prisma.UserCreateInput): Promise<User> {
     return this.usersRepository.create(data);
+  }
+
+  async findByVerificationTokenDigest(digest: string): Promise<User | null> {
+    return this.usersRepository.findUnique({ emailVerificationToken: digest });
+  }
+
+  async markEmailVerified(userId: string): Promise<User> {
+    const user = await this.ensureUserExists(userId);
+
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        email: user.pendingEmail ?? user.email,
+        pendingEmail: null,
+        emailVerifiedAt: new Date(),
+        emailVerificationToken: null,
+        emailVerificationExpiresAt: null,
+        status: UserStatus.ACTIVE,
+      },
+    );
+  }
+
+  async updateEmailVerificationToken(
+    userId: string,
+    digest: string,
+    expiresAt: Date,
+  ): Promise<User> {
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        emailVerificationToken: digest,
+        emailVerificationExpiresAt: expiresAt,
+        emailVerifiedAt: null,
+      },
+    );
+  }
+
+  async findByResetPasswordTokenDigest(digest: string): Promise<User | null> {
+    return this.usersRepository.findUnique({ resetPasswordToken: digest });
+  }
+
+  async setResetPasswordToken(
+    userId: string,
+    digest: string,
+    expiresAt: Date,
+  ): Promise<User> {
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        resetPasswordToken: digest,
+        resetPasswordExpiresAt: expiresAt,
+      },
+    );
+  }
+
+  async clearResetPasswordToken(userId: string): Promise<User> {
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        resetPasswordToken: null,
+        resetPasswordExpiresAt: null,
+      },
+    );
   }
 
   async updatePassword(id: string, hashedPassword: string): Promise<User> {
     await this.ensureUserExists(id);
-    return this.usersRepository.update({ id }, { password: hashedPassword });
+    return this.usersRepository.update(
+      { id },
+      { password: hashedPassword, passwordChangedAt: new Date() },
+    );
   }
 
   async changePassword(
@@ -85,19 +136,68 @@ export class UsersService {
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);
-    await this.usersRepository.update({ id }, { password: hashedPassword });
+    await this.usersRepository.update(
+      { id },
+      { password: hashedPassword, passwordChangedAt: new Date() },
+    );
   }
 
-  async update(id: string, dto: UpdateUserDto): Promise<User> {
-    const user = await this.findById(id);
-    if (user?.email === dto.email) {
-      throw new ConflictException('Email already exists');
+  async changeEmail(
+    userId: string,
+    params: {
+      pendingEmail: string;
+      verificationDigest: string;
+      verificationExpiresAt: Date;
+    },
+  ): Promise<User> {
+    const user = await this.ensureUserExists(userId);
+
+    if (user.email === params.pendingEmail) {
+      throw new BadRequestException('New email must be different');
     }
-    return this.usersRepository.update({ id }, dto);
+
+    const existingUser = await this.findByEmail(params.pendingEmail);
+    if (existingUser && existingUser.id !== userId) {
+      throw new ConflictException('Email already in use');
+    }
+
+    const pendingEmailOwner = await this.findByPendingEmail(
+      params.pendingEmail,
+    );
+    if (pendingEmailOwner && pendingEmailOwner.id !== userId) {
+      throw new ConflictException('Email already in use');
+    }
+
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        pendingEmail: params.pendingEmail,
+        emailVerificationToken: params.verificationDigest,
+        emailVerificationExpiresAt: params.verificationExpiresAt,
+      },
+    );
   }
 
-  async delete(id: string): Promise<void> {
-    await this.findById(id);
-    await this.usersRepository.delete({ id });
+  async refreshPendingUser(
+    userId: string,
+    params: {
+      name: string;
+      hashedPassword: string;
+      verificationDigest: string;
+      verificationExpiresAt: Date;
+    },
+  ): Promise<User> {
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        name: params.name,
+        password: params.hashedPassword,
+        status: UserStatus.PENDING,
+        emailVerificationToken: params.verificationDigest,
+        emailVerificationExpiresAt: params.verificationExpiresAt,
+        emailVerifiedAt: null,
+        pendingEmail: null,
+      },
+    );
   }
 }

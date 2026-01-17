@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
-import { JwtPayload } from '../types/auth.types';
+import { JwtDecoded, JwtPayload } from '../types/auth.types';
 
 @Injectable()
 export class AccessTokenService {
@@ -21,5 +21,9 @@ export class AccessTokenService {
     return this.jwt.verify<JwtPayload>(token, {
       secret: this.config.get('JWT_SECRET'),
     });
+  }
+
+  decode(token: string) {
+    return this.jwt.decode<JwtDecoded>(token);
   }
 }

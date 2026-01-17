@@ -11,6 +11,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor';
 import { SessionsModule } from './sessions/sessions.module';
 import { LoggingModule } from './logging/logging.module';
+import { MailModule } from './mail/mail.module';
+import { RedisModule } from './redis/redis.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { LoggingModule } from './logging/logging.module';
     CommonModule,
     SessionsModule,
     LoggingModule,
+    MailModule,
+    RedisModule,
   ],
   controllers: [AppController],
   providers: [

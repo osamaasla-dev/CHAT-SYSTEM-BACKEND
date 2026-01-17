@@ -185,7 +185,14 @@ export class SessionsService {
     });
 
     return sessions.map(
-      ({ id, expiresAt, revokedAt, refreshVersion, ip, userAgent }) => ({
+      ({
+        id,
+        expiresAt,
+        revokedAt,
+        refreshVersion,
+        ip,
+        userAgent,
+      }: Session) => ({
         id,
         userId,
         expiresAt,
@@ -207,6 +214,16 @@ export class SessionsService {
   async revokeAllSessionsForUser(userId: string): Promise<void> {
     await this.sessionRepository.updateMany(
       { userId, revokedAt: null },
+      { revokedAt: new Date() },
+    );
+  }
+
+  async revokeAllOtherSessions(
+    userId: string,
+    activeSessionId: string,
+  ): Promise<void> {
+    await this.sessionRepository.updateMany(
+      { userId, revokedAt: null, id: { not: activeSessionId } },
       { revokedAt: new Date() },
     );
   }
