@@ -6,29 +6,44 @@ import { Prisma, Session } from '@prisma/client';
 export class SessionRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  create(data: Prisma.SessionCreateInput): Promise<Session> {
-    return this.prisma.session.create({ data });
+  private getClient(tx?: Prisma.TransactionClient) {
+    return tx ?? this.prisma;
+  }
+
+  create(
+    data: Prisma.SessionUncheckedCreateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Session> {
+    return this.getClient(tx).session.create({ data });
   }
 
   updateMany(
     where: Prisma.SessionUpdateManyArgs['where'],
     data: Prisma.SessionUpdateManyMutationInput,
+    tx?: Prisma.TransactionClient,
   ) {
-    return this.prisma.session.updateMany({ where, data });
+    return this.getClient(tx).session.updateMany({ where, data });
   }
 
-  findUnique(where: Prisma.SessionWhereUniqueInput): Promise<Session | null> {
-    return this.prisma.session.findUnique({ where });
+  findUnique(
+    where: Prisma.SessionWhereUniqueInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Session | null> {
+    return this.getClient(tx).session.findUnique({ where });
   }
 
-  findMany(args: Prisma.SessionFindManyArgs): Promise<Session[]> {
-    return this.prisma.session.findMany(args);
+  findMany(
+    args: Prisma.SessionFindManyArgs,
+    tx?: Prisma.TransactionClient,
+  ): Promise<Session[]> {
+    return this.getClient(tx).session.findMany(args);
   }
 
   update(
     where: Prisma.SessionWhereUniqueInput,
     data: Prisma.SessionUpdateInput,
+    tx?: Prisma.TransactionClient,
   ): Promise<Session> {
-    return this.prisma.session.update({ where, data });
+    return this.getClient(tx).session.update({ where, data });
   }
 }

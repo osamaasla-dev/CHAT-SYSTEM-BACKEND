@@ -71,7 +71,7 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password, response);
   }
 
-  @Post('token/introspect')
+  @Get('token/introspect')
   @Throttle({
     default: {
       ttl: AUTH_RATE_LIMITS.INTROSPECTION.windowSeconds,

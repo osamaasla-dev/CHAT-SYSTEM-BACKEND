@@ -6,23 +6,40 @@ import { Prisma, User } from '@prisma/client';
 export class UsersRepository {
   constructor(private readonly prisma: PrismaService) {}
 
-  findMany(args: Prisma.UserFindManyArgs): Promise<User[]> {
-    return this.prisma.user.findMany(args);
+  private getClient(tx?: Prisma.TransactionClient) {
+    return tx ?? this.prisma;
   }
 
-  findUnique(where: Prisma.UserWhereUniqueInput): Promise<User | null> {
-    return this.prisma.user.findUnique({ where });
+  findMany(
+    args: Prisma.UserFindManyArgs,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User[]> {
+    return this.getClient(tx).user.findMany(args);
   }
 
-  create(data: Prisma.UserCreateInput): Promise<User> {
-    return this.prisma.user.create({ data });
+  findUnique(
+    where: Prisma.UserWhereUniqueInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.getClient(tx).user.findUnique({ where });
   }
 
-  update(where: Prisma.UserWhereUniqueInput, data: Prisma.UserUpdateInput) {
-    return this.prisma.user.update({ where, data });
+  create(
+    data: Prisma.UserUncheckedCreateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User> {
+    return this.getClient(tx).user.create({ data });
   }
 
-  delete(where: Prisma.UserWhereUniqueInput) {
-    return this.prisma.user.delete({ where });
+  update(
+    where: Prisma.UserWhereUniqueInput,
+    data: Prisma.UserUpdateInput,
+    tx?: Prisma.TransactionClient,
+  ) {
+    return this.getClient(tx).user.update({ where, data });
+  }
+
+  delete(where: Prisma.UserWhereUniqueInput, tx?: Prisma.TransactionClient) {
+    return this.getClient(tx).user.delete({ where });
   }
 }

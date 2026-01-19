@@ -47,7 +47,7 @@ export class TokenIntrospectionService {
       this.logger.log('Introspecting token started');
       const sessionContext = this.requestContextService.snapshot();
 
-      const accessToken = request?.cookies?.accessToken;
+      const accessToken = request?.cookies?.access_token;
       if (!accessToken) {
         this.logger.warn('No access token provided');
         return {

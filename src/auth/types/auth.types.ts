@@ -57,3 +57,14 @@ export interface TokenIntrospectionResponse {
     status?: string;
   };
 }
+export interface VerifyResult {
+  verified: boolean;
+  message?: string;
+  access_token?: string;
+  refresh_token?: string;
+  user?: {
+    id: string;
+    email: string;
+    role: string;
+  };
+}

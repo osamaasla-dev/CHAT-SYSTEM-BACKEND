@@ -32,6 +32,7 @@ import { CreateMfaChallengeService } from './services/use-cases/create-mfa-chall
 import { VerifyMfaChallengeService } from './services/use-cases/verify-mfa-challenge.service';
 import { TokenIntrospectionService } from './services/use-cases/token-introspection.service';
 import { RedisModule } from 'src/redis/redis.module';
+import { SocialAuthModule } from './providers/social-auth/social-auth.module';
 
 @Module({
   imports: [
@@ -52,6 +53,7 @@ import { RedisModule } from 'src/redis/redis.module';
         },
       }),
     }),
+    SocialAuthModule,
   ],
   controllers: [AuthController],
   providers: [
@@ -85,6 +87,8 @@ import { RedisModule } from 'src/redis/redis.module';
     TokenManagerService,
     AccessTokenService,
     RefreshTokenService,
+    EmailTokenService,
+    AuthLoggingService,
   ],
 })
 export class AuthModule {}

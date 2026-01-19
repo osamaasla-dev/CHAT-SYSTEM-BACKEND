@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { LogLevel, Session } from '@prisma/client';
+import { LogLevel, Session, Prisma } from '@prisma/client';
 import { RefreshTokenService } from '../auth/services/refresh-token.service';
 import type { JwtPayload, SessionMetadata } from '../auth/types/auth.types';
 import { LoggingService } from '../logging/logging.service';
@@ -20,16 +20,20 @@ export class SessionsService {
   async createSession(
     userId: string,
     context?: RequestContextSnapshot,
+    tx?: Prisma.TransactionClient,
   ): Promise<Session> {
     const expiresAt = computeRefreshExpiryDate();
     const contextSnapshot = context ?? {};
 
-    return this.sessionRepository.create({
-      user: { connect: { id: userId } },
-      expiresAt,
-      ip: contextSnapshot.ip,
-      userAgent: contextSnapshot.userAgent,
-    });
+    return this.sessionRepository.create(
+      {
+        userId,
+        expiresAt,
+        ip: contextSnapshot.ip,
+        userAgent: contextSnapshot.userAgent,
+      },
+      tx,
+    );
   }
 
   async persistRefreshToken(
@@ -37,6 +41,7 @@ export class SessionsService {
     refreshToken: string,
     currentRefreshVersion: number,
     context?: RequestContextSnapshot,
+    tx?: Prisma.TransactionClient,
   ): Promise<void> {
     const hashedRefreshToken = await bcrypt.hash(refreshToken, 10);
     const contextSnapshot = context ?? {};
@@ -53,10 +58,11 @@ export class SessionsService {
         ip: contextSnapshot.ip,
         userAgent: contextSnapshot.userAgent,
       },
+      tx,
     );
 
     if (updateResult.count === 0) {
-      await this.revokeSession(sessionId);
+      await this.revokeSession(sessionId, tx);
       throw new UnauthorizedException('Session version mismatch');
     }
   }
@@ -204,10 +210,14 @@ export class SessionsService {
     );
   }
 
-  async revokeSession(sessionId: string): Promise<void> {
+  async revokeSession(
+    sessionId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<void> {
     await this.sessionRepository.update(
       { id: sessionId },
       { revokedAt: new Date() },
+      tx,
     );
   }
 

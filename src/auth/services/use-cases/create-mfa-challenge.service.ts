@@ -32,6 +32,7 @@ export class CreateMfaChallengeService {
   ) {}
 
   async execute(request: RequestWithCookies, response: FastifyReply) {
+    this.logger.log('Creating MFA challenge started');
     const { payload: userPayload } = await resolveTempSessionPayload({
       request,
       emailTokenService: this.emailTokenService,

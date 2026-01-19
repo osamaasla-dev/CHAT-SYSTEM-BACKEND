@@ -13,41 +13,65 @@ import * as bcrypt from 'bcrypt';
 export class UsersService {
   constructor(private readonly usersRepository: UsersRepository) {}
 
-  private async ensureUserExists(id: string): Promise<User> {
-    const user = await this.findById(id);
+  private async ensureUserExists(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User> {
+    const user = await this.findById(id, tx);
     if (!user) {
       throw new NotFoundException('User not found');
     }
     return user;
   }
 
-  async findAll(): Promise<User[]> {
-    const users = await this.usersRepository.findMany({});
+  async findAll(tx?: Prisma.TransactionClient): Promise<User[]> {
+    const users = await this.usersRepository.findMany({}, tx);
     return users;
   }
 
-  async findById(id: string): Promise<User | null> {
-    return this.usersRepository.findUnique({ id });
+  async findById(
+    id: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique({ id }, tx);
   }
 
-  async findByEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findUnique({ email });
+  async findByEmail(
+    email: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique({ email }, tx);
   }
 
-  async findByPendingEmail(email: string): Promise<User | null> {
-    return this.usersRepository.findUnique({ pendingEmail: email });
+  async findByPendingEmail(
+    email: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique({ pendingEmail: email }, tx);
   }
 
-  async createUser(data: Prisma.UserCreateInput): Promise<User> {
-    return this.usersRepository.create(data);
+  async createUser(
+    data: Prisma.UserUncheckedCreateInput,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User> {
+    return this.usersRepository.create(data, tx);
   }
 
-  async findByVerificationTokenDigest(digest: string): Promise<User | null> {
-    return this.usersRepository.findUnique({ emailVerificationToken: digest });
+  async findByVerificationTokenDigest(
+    digest: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique(
+      { emailVerificationToken: digest },
+      tx,
+    );
   }
 
-  async markEmailVerified(userId: string): Promise<User> {
-    const user = await this.ensureUserExists(userId);
+  async markEmailVerified(
+    userId: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User> {
+    const user = await this.ensureUserExists(userId, tx);
 
     return this.usersRepository.update(
       { id: userId },
@@ -59,6 +83,7 @@ export class UsersService {
         emailVerificationExpiresAt: null,
         status: UserStatus.ACTIVE,
       },
+      tx,
     );
   }
 
@@ -122,7 +147,7 @@ export class UsersService {
 
     const isPasswordMatch = await bcrypt.compare(
       currentPassword,
-      user.password,
+      user.password || '',
     );
 
     if (!isPasswordMatch) {

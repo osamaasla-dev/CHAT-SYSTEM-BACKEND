@@ -39,14 +39,15 @@ export class EmailTokenService {
       'http://localhost:3000/auth/reset-password';
   }
 
-  private generateToken(ttlMs: number): TokenPayload {
+  generateToken(ttlMs?: number): TokenPayload {
     const rawToken = randomBytes(32).toString('hex');
     const digest = this.hashToken(rawToken);
+    const expiresAt = ttlMs ? new Date(Date.now() + ttlMs) : new Date();
 
     return {
       rawToken,
       digest,
-      expiresAt: new Date(Date.now() + ttlMs),
+      expiresAt,
     };
   }
 

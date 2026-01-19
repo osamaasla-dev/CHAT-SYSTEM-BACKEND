@@ -5,7 +5,6 @@ import {
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
-import { randomBytes } from 'crypto';
 import * as bcrypt from 'bcrypt';
 import { UsersService } from '../../../users/users.service';
 import { AuthLoggingService } from '../auth-logging.service';
@@ -73,14 +72,14 @@ export class LoginService {
       throw new UnauthorizedException('Email is not verified');
     }
 
-    const isPasswordMatch = await bcrypt.compare(password, user.password);
+    const isPasswordMatch = await bcrypt.compare(password, user.password || '');
     if (!isPasswordMatch) {
       await this.authLoggingService.loginInvalidPassword(user.id, email);
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    const tempSessionId = randomBytes(32).toString('hex');
-    const hashedTempSessionId = this.emailTokenService.hashToken(tempSessionId);
+    const { rawToken: tempSessionId, digest: hashedTempSessionId } =
+      this.emailTokenService.generateToken();
 
     const tempSessionPayload: MfaTempSessionPayload = {
       id: user.id,

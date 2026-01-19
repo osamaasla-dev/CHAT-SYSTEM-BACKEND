@@ -25,11 +25,20 @@ enum UserRole {
   ADMIN
 }
 
+enum AuthProviderType {
+  GOOGLE
+  FACEBOOK
+  TWITTER
+  GITHUB
+}
+
 model User {
   id           String   @id @default(cuid())
   name         String
   email        String   @unique
-  password     String
+  password     String?
+  avatarUrl    String?
+  avatarPublicId String?
   role         UserRole @default(USER)
 
   emailVerifiedAt         DateTime?
@@ -49,6 +58,20 @@ model User {
 
   sessions     Session[]
   logs         Log[]
+  authProviders AuthProvider[]
+}
+
+model AuthProvider {
+  id          String   @id @default(cuid())
+  userId      String
+  provider    AuthProviderType
+  providerId  String   
+  user        User     @relation(fields: [userId], references: [id])
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([provider, providerId])
+  @@index([userId])
 }
 
 model Session {

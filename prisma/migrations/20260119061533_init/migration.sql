@@ -3,7 +3,9 @@ CREATE TABLE "User" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
+    "password" TEXT,
+    "avatarUrl" TEXT,
+    "avatarPublicId" TEXT,
     "role" TEXT NOT NULL DEFAULT 'USER',
     "emailVerifiedAt" DATETIME,
     "emailVerificationToken" TEXT,
@@ -14,6 +16,17 @@ CREATE TABLE "User" (
     "passwordChangedAt" DATETIME,
     "status" TEXT NOT NULL DEFAULT 'PENDING',
     "lastLoginAt" DATETIME
+);
+
+-- CreateTable
+CREATE TABLE "AuthProvider" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
+    "provider" TEXT NOT NULL,
+    "providerId" TEXT NOT NULL,
+    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "AuthProvider_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE RESTRICT ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -57,6 +70,12 @@ CREATE UNIQUE INDEX "User_pendingEmail_key" ON "User"("pendingEmail");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_resetPasswordToken_key" ON "User"("resetPasswordToken");
+
+-- CreateIndex
+CREATE INDEX "AuthProvider_userId_idx" ON "AuthProvider"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "AuthProvider_provider_providerId_key" ON "AuthProvider"("provider", "providerId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Session_hashedRefreshToken_key" ON "Session"("hashedRefreshToken");

@@ -18,6 +18,7 @@ import {
 import { SessionsService } from '../../../sessions/sessions.service';
 import { TokenManagerService } from '../token-manager.service';
 import { AuthLoggingService } from '../auth-logging.service';
+import { VerifyResult } from '../../types/auth.types';
 
 @Injectable()
 export class VerifyMfaChallengeService {
@@ -37,7 +38,8 @@ export class VerifyMfaChallengeService {
     code: string,
     request: RequestWithCookies,
     response: FastifyReply,
-  ) {
+  ): Promise<VerifyResult> {
+    this.logger.log('Verifying MFA challenge started');
     const { payload: userPayload, hashedTempSessionId } =
       await resolveTempSessionPayload({
         request,
@@ -59,18 +61,18 @@ export class VerifyMfaChallengeService {
 
     if (!challenge) {
       this.logger.warn('MFA challenge not found or expired');
-      return { verified: false };
+      throw new UnauthorizedException('MFA challenge not found or expired');
     }
 
     if (challenge.userId !== userPayload.id) {
       this.logger.warn('MFA challenge user mismatch');
-      return { verified: false };
+      throw new UnauthorizedException('MFA challenge user mismatch');
     }
 
     const codeDigest = this.emailTokenService.hashToken(code);
     if (codeDigest !== challenge.codeDigest) {
       this.logger.warn(`Invalid MFA code for user ${userPayload.id}`);
-      return { verified: false };
+      return { verified: false, message: 'Invalid MFA code' };
     }
 
     await this.redisService.delete(challengeKey);
@@ -107,6 +109,7 @@ export class VerifyMfaChallengeService {
 
     return {
       verified: true,
+      message: 'Login successful',
       access_token: tokens.access_token,
       refresh_token: tokens.refresh_token,
       user: {
