@@ -1,11 +1,12 @@
-import { IsString, MinLength } from 'class-validator';
+import { IsString, Matches } from 'class-validator';
+
+import { StrongPassword } from 'src/common/validations/strong-password.decorator';
 
 export class ChangePasswordDto {
+  @Matches(/^\S+$/, { message: 'Current password must not contain spaces' })
   @IsString({ message: 'Current password is required' })
-  @MinLength(6, { message: 'Current password must be at least 6 characters' })
   currentPassword!: string;
 
-  @IsString({ message: 'New password is required' })
-  @MinLength(6, { message: 'New password must be at least 6 characters' })
+  @StrongPassword()
   newPassword!: string;
 }

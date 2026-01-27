@@ -1,11 +1,12 @@
-import { IsNotEmpty, IsString, MinLength } from 'class-validator';
+import { IsNotEmpty, IsString } from 'class-validator';
+
+import { StrongPassword } from 'src/common/validations/strong-password.decorator';
 
 export class ResetPasswordDto {
   @IsString({ message: 'Token is required' })
   @IsNotEmpty({ message: 'Token is required' })
   token!: string;
 
-  @IsString({ message: 'New password is required' })
-  @MinLength(6, { message: 'New password must be at least 6 characters' })
-  newPassword!: string;
+  @StrongPassword()
+  password!: string;
 }

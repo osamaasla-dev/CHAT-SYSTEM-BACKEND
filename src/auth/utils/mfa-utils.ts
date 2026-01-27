@@ -1,9 +1,8 @@
-import { UnauthorizedException } from '@nestjs/common';
+import { BadRequestException } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { randomBytes } from 'crypto';
 import { ConfigService } from '@nestjs/config';
-import type { RequestWithCookies, UserPayload } from '../types/auth.types';
-import { EmailTokenService } from '../services/use-cases/email-token.service';
+import type { UserPayload } from '../types/auth.types';
 import { RedisService } from '../../redis/redis.service';
 import type { RequestContextSnapshot } from '../../common/services/request-context.service';
 import {
@@ -12,6 +11,8 @@ import {
   MFA_CODE_LENGTH,
   MFA_USER_POINTER_NAMESPACE,
 } from '../constants/mfa.constants';
+import { RequestWithCookies } from 'src/common/types/request.types';
+import { cryptoHash } from 'src/common/utils/crypto-hash';
 
 export const MFA_TOKEN_COOKIE = 'mfa_token';
 export const MFA_TEMP_SESSION_COOKIE = 'temp_session_id';
@@ -51,27 +52,25 @@ export interface ResolvedTempSessionPayload {
 
 interface TempSessionResolutionParams {
   request: RequestWithCookies;
-  emailTokenService: EmailTokenService;
   redisService: RedisService;
 }
 
 export const resolveTempSessionPayload = async ({
   request,
-  emailTokenService,
   redisService,
 }: TempSessionResolutionParams): Promise<ResolvedTempSessionPayload> => {
   const tempSessionId = request?.cookies?.[MFA_TEMP_SESSION_COOKIE];
   if (!tempSessionId) {
-    throw new UnauthorizedException('MFA temp session ID not found');
+    throw new BadRequestException('INVALID_MFA_TOKEN');
   }
 
-  const hashedTempSessionId = emailTokenService.hashToken(tempSessionId);
+  const hashedTempSessionId = cryptoHash(tempSessionId);
   const userPayload = await redisService.get<MfaTempSessionPayload | null>(
     hashedTempSessionId,
   );
 
   if (!userPayload) {
-    throw new UnauthorizedException('MFA temp session not found');
+    throw new BadRequestException('INVALID_MFA_TOKEN');
   }
 
   return {

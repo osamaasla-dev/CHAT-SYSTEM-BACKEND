@@ -29,7 +29,7 @@ export class RateLimitService {
       identifier,
       limit,
       windowSeconds,
-      limitExceededMessage = 'Too many attempts. Please try again later.',
+      limitExceededMessage = 'TOO_MANY_ATTEMPTS',
       logContext,
     } = params;
 

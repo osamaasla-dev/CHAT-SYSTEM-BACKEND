@@ -1,19 +1,20 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, Logger, UnauthorizedException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { LogLevel, Session, Prisma } from '@prisma/client';
-import { RefreshTokenService } from '../auth/services/refresh-token.service';
-import type { JwtPayload, SessionMetadata } from '../auth/types/auth.types';
-import { LoggingService } from '../logging/logging.service';
+import type { JwtPayload, SessionMetadata } from 'src/auth/types/auth.types';
+import { LoggingService } from 'src/logging/logging.service';
 import { SessionRepository } from './repositories/session.repository';
 import { computeRefreshExpiryDate } from './utils/expiry.util';
 import { areIpsInSameSubnet } from './utils/ip.util';
-import type { RequestContextSnapshot } from '../common/services/request-context.service';
+import type { RequestContextSnapshot } from 'src/common/services/request-context.service';
+import { TokenService } from 'src/auth/modules/token/token.service';
 
 @Injectable()
 export class SessionsService {
+  private readonly logger = new Logger(SessionsService.name);
   constructor(
     private readonly sessionRepository: SessionRepository,
-    private readonly refreshTokenService: RefreshTokenService,
+    private readonly tokenService: TokenService,
     private readonly loggingService: LoggingService,
   ) {}
 
@@ -71,8 +72,9 @@ export class SessionsService {
     refreshToken: string,
     context?: RequestContextSnapshot,
   ): Promise<{ session: Session; payload: JwtPayload }> {
-    const payload = this.refreshTokenService.verify(refreshToken);
-
+    this.logger.log('Validating refresh token start');
+    const payload = this.tokenService.refreshToken.verify(refreshToken);
+    this.logger.log('Validating refresh token end', { payload });
     const session = await this.sessionRepository.findUnique({
       id: payload.sessionId,
     });

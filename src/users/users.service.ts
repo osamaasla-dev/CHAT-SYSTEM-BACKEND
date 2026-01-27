@@ -50,6 +50,13 @@ export class UsersService {
     return this.usersRepository.findUnique({ pendingEmail: email }, tx);
   }
 
+  async findByUsername(
+    username: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique({ username }, tx);
+  }
+
   async createUser(
     data: Prisma.UserUncheckedCreateInput,
     tx?: Prisma.TransactionClient,
@@ -224,5 +231,42 @@ export class UsersService {
         pendingEmail: null,
       },
     );
+  }
+
+  async updateLastLoginAt(
+    userId: string,
+    date: Date = new Date(),
+  ): Promise<User> {
+    await this.ensureUserExists(userId);
+    return this.usersRepository.update(
+      { id: userId },
+      {
+        lastLoginAt: date,
+      },
+    );
+  }
+
+  async generateUniqueUsername(name: string): Promise<string> {
+    const base = this.normalizeNameForUsername(name);
+    const suffix = Date.now().toString().slice(-6);
+    let candidate = `${base}${suffix}`;
+    let counter = 0;
+
+    while (await this.findByUsername(candidate)) {
+      counter += 1;
+      candidate = `${base}${suffix}${counter}`;
+    }
+
+    return candidate;
+  }
+
+  private normalizeNameForUsername(name: string): string {
+    const normalized = name
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '')
+      .slice(0, 20);
+
+    return normalized || `user${Date.now().toString().slice(-4)}`;
   }
 }

@@ -1,7 +1,6 @@
-import { IsEmail, IsNotEmpty } from 'class-validator';
+import { ValidEmail } from 'src/common/validations/valid-email.decorator';
 
 export class RequestPasswordResetDto {
-  @IsEmail({}, { message: 'Email must be valid' })
-  @IsNotEmpty({ message: 'Email is required' })
+  @ValidEmail()
   email!: string;
 }

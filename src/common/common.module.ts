@@ -5,6 +5,7 @@ import { RequestContextMiddleware } from './middleware/request-context.middlewar
 import { RequestContextInterceptor } from './interceptors/request-context.interceptor';
 import { RateLimitService } from './services/rate-limit.service';
 import { RedisModule } from '../redis/redis.module';
+import { FrontendRedirectService } from './services/frontend-redirect.service';
 
 @Module({
   imports: [PrismaModule, RedisModule],
@@ -13,12 +14,14 @@ import { RedisModule } from '../redis/redis.module';
     RequestContextMiddleware,
     RequestContextInterceptor,
     RateLimitService,
+    FrontendRedirectService,
   ],
   exports: [
     RequestContextService,
     RequestContextMiddleware,
     RequestContextInterceptor,
     RateLimitService,
+    FrontendRedirectService,
   ],
 })
 export class CommonModule {}

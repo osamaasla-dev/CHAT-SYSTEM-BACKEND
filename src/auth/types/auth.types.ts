@@ -28,10 +28,6 @@ export interface RequestWithUser extends FastifyRequest {
   user: CurrentUserType;
 }
 
-export type RequestWithCookies = FastifyRequest & {
-  cookies?: Record<string, string | undefined>;
-};
-
 export type SessionMetadata = Pick<
   Session,
   | 'id'
@@ -43,28 +39,6 @@ export type SessionMetadata = Pick<
   | 'userAgent'
 >;
 
-export interface TokenIntrospectionResponse {
-  token?: {
-    active: boolean;
-    type: 'access';
-    issuedAt: string | null;
-    expiresAt: string | null;
-  };
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-    status?: string;
-  };
-}
 export interface VerifyResult {
   verified: boolean;
-  message?: string;
-  access_token?: string;
-  refresh_token?: string;
-  user?: {
-    id: string;
-    email: string;
-    role: string;
-  };
 }

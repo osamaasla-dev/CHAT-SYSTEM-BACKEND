@@ -7,6 +7,7 @@ import {
   UseGuards,
   Req,
   Res,
+  Query,
 } from '@nestjs/common';
 import type { FastifyReply } from 'fastify';
 import { AuthService } from './auth.service';
@@ -15,17 +16,18 @@ import { SignupDto } from './dto/signup.dto';
 import { Throttle } from '@nestjs/throttler';
 import { JwtAuthGuard } from './guards/jwt-auth.guard';
 import { CurrentUser } from './decorators/current-user.decorator';
-import type { CurrentUserType, RequestWithCookies } from './types/auth.types';
+import type { CurrentUserType } from './types/auth.types';
 import { JwtSessionGuard } from './guards/jwt-session.guard';
 import { RolesGuard } from './guards/roles.guard';
 import { Roles } from './decorators/roles.decorator';
 import { ChangePasswordDto } from './dto/change-password.dto';
 import { RequestPasswordResetDto } from './dto/request-password-reset.dto';
 import { ResetPasswordDto } from './dto/reset-password.dto';
-import { VerifyEmailDto } from './dto/verify-email';
 import { ChangeEmailDto } from './dto/change-email.dto';
+import { MfaCodeDto } from './dto/mfa.code.dto';
 import { UserRole } from '@prisma/client';
 import { AUTH_RATE_LIMITS } from './constants/rate-limit.constants';
+import type { RequestWithCookies } from 'src/common/types/request.types';
 
 @Controller('auth')
 @Throttle({ default: { ttl: 60, limit: 10 } })
@@ -43,7 +45,7 @@ export class AuthController {
     return this.authService.signup(dto.name, dto.email, dto.password);
   }
 
-  @Post('verify-email')
+  @Get('email/verify')
   @Throttle({
     default: {
       ttl: AUTH_RATE_LIMITS.SIGNUP.windowSeconds,
@@ -52,9 +54,10 @@ export class AuthController {
   })
   async verifyEmail(
     @Req() request: RequestWithCookies,
-    @Body() dto: VerifyEmailDto,
+    @Query('token') token: string,
+    @Res({ passthrough: true }) response: FastifyReply,
   ) {
-    return this.authService.verifyEmail(dto.token, request);
+    return this.authService.verifyEmail(token, response, request);
   }
 
   @Post('login')
@@ -71,7 +74,7 @@ export class AuthController {
     return this.authService.login(dto.email, dto.password, response);
   }
 
-  @Get('token/introspect')
+  @Post('token/introspect')
   @Throttle({
     default: {
       ttl: AUTH_RATE_LIMITS.INTROSPECTION.windowSeconds,
@@ -106,9 +109,9 @@ export class AuthController {
   async verifyMfaChallenge(
     @Req() request: RequestWithCookies,
     @Res({ passthrough: true }) response: FastifyReply,
-    @Body('code') code: string,
+    @Body() dto: MfaCodeDto,
   ) {
-    return this.authService.verifyMfaChallenge(code, request, response);
+    return this.authService.verifyMfaChallenge(dto.code, request, response);
   }
 
   @Post('refresh')
@@ -190,7 +193,7 @@ export class AuthController {
     },
   })
   async resetPassword(@Body() dto: ResetPasswordDto) {
-    return this.authService.resetPassword(dto.token, dto.newPassword);
+    return this.authService.resetPassword(dto.token, dto.password);
   }
 
   @Post('email/change')

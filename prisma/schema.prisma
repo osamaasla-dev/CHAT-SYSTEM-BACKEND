@@ -32,33 +32,97 @@ enum AuthProviderType {
   GITHUB
 }
 
+enum ChatType {
+  PRIVATE
+  GROUP
+}
+
+enum ParticipantRole {
+  OWNER
+  ADMIN
+  MEMBER
+}
+
+enum MessageContentType {
+  TEXT
+  EMOJI
+}
+
+enum NotificationType {
+  MESSAGE
+  MENTION
+  SYSTEM
+}
+
+enum ThemePreference {
+  SYSTEM
+  LIGHT
+  DARK
+}
+
+enum FriendRequestStatus {
+  PENDING
+  ACCEPTED
+  DECLINED
+  CANCELED
+}
+
+enum PresenceStatus {
+  ONLINE
+  OFFLINE
+  AWAY
+}
+
+enum PrivacyLevel {
+  ALL
+  FRIENDS
+  ONLY_ME
+}
+
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  email        String   @unique
-  password     String?
-  avatarUrl    String?
-  avatarPublicId String?
-  role         UserRole @default(USER)
+  id              String   @id @default(cuid())
+  name            String
+  username        String   @unique
+  email           String   @unique
+  password        String?
+  avatarUrl       String?
+  avatarPublicId  String?
+  role            UserRole @default(USER)
 
-  emailVerifiedAt         DateTime?
-  emailVerificationToken  String?   @unique
+  emailVerifiedAt          DateTime?
+  emailVerificationToken   String?   @unique
   emailVerificationExpiresAt DateTime?
-  pendingEmail             String?   @unique
+  pendingEmail              String?   @unique
 
+  resetPasswordToken       String?   @unique
+  resetPasswordExpiresAt   DateTime?
 
-  resetPasswordToken      String?   @unique
-  resetPasswordExpiresAt  DateTime?
+  passwordChangedAt        DateTime?
 
-  passwordChangedAt       DateTime?
+  status                   UserStatus @default(PENDING)
 
-  status                  UserStatus @default(PENDING)
+  lastLoginAt              DateTime?
+  statusMessage            String?
+  emojiStatus              String?
+  presenceStatus           PresenceStatus @default(OFFLINE)
+  lastSeenAt               DateTime?
 
-  lastLoginAt             DateTime?
+  sessions                 Session[]
+  logs                     Log[]
+  authProviders            AuthProvider[]
+  chatParticipants         ChatParticipant[]
+  messages                 Message[]
+  messageReactions         MessageReaction[]
+  notifications            Notification[]
+  blocksInitiated          UserBlock[]    @relation("blocker")
+  blocksReceived           UserBlock[]    @relation("blocked")
+  friendRequestsSent       FriendRequest[] @relation("friendRequestsSent")
+  friendRequestsReceived   FriendRequest[] @relation("friendRequestsReceived")
+  friendshipsInitiated     Friendship[]    @relation("friendshipUserA")
+  friendshipsReceived      Friendship[]    @relation("friendshipUserB")
+  settings                 UserSettings?
+  deletedAt                DateTime?
 
-  sessions     Session[]
-  logs         Log[]
-  authProviders AuthProvider[]
 }
 
 model AuthProvider {
@@ -106,6 +170,157 @@ model Log {
   @@index([createdAt])
   @@index([userId])
   @@index([path])
+}
+
+model Chat {
+  id            String      @id @default(cuid())
+  type          ChatType    @default(PRIVATE)
+  title         String?
+  avatarUrl     String?
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+  lastMessageAt DateTime?
+  metadata      Json?
+
+  participants  ChatParticipant[]
+  messages      Message[]
+
+  @@index([type])
+}
+
+model ChatParticipant {
+  id                   String          @id @default(cuid())
+  chatId               String
+  userId               String
+  role                 ParticipantRole @default(MEMBER)
+  notificationsMuted   Boolean         @default(false)
+  muteUntil            DateTime?
+  pinnedAt             DateTime?
+  lastReadAt           DateTime?
+  createdAt            DateTime        @default(now())
+  updatedAt            DateTime        @updatedAt
+
+  chat                 Chat            @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([chatId, userId])
+  @@index([userId])
+}
+
+model Message {
+  id            String             @id @default(cuid())
+  chatId        String
+  senderId      String
+  content       String
+  contentType   MessageContentType @default(TEXT)
+  containsEmoji Boolean            @default(false)
+  metadata      Json?
+  createdAt     DateTime           @default(now())
+  editedAt      DateTime?
+  deletedAt     DateTime?
+
+  chat          Chat               @relation(fields: [chatId], references: [id], onDelete: Cascade)
+  sender        User               @relation(fields: [senderId], references: [id], onDelete: Cascade)
+  reactions     MessageReaction[]
+
+  @@index([chatId])
+  @@index([senderId])
+}
+
+model MessageReaction {
+  id        String   @id @default(cuid())
+  messageId String
+  userId    String
+  emoji     String
+  createdAt DateTime @default(now())
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([messageId, userId, emoji])
+  @@index([userId])
+}
+
+model UserSettings {
+  id                   String          @id @default(cuid())
+  userId               String          @unique
+  onlineVisibility     PrivacyLevel    @default(FRIENDS)
+  readReceiptsVisibility PrivacyLevel  @default(FRIENDS)
+  profileVisibility    PrivacyLevel    @default(FRIENDS)
+  messageNotifications Boolean         @default(true)
+  soundNotifications   Boolean         @default(true)
+  notifyOnMentions     Boolean         @default(true)
+  allowDm              PrivacyLevel    @default(ALL)
+  allowSearch          PrivacyLevel    @default(ALL)
+  themePreference      ThemePreference @default(SYSTEM)
+  statusEmoji          String?
+  updatedAt            DateTime        @updatedAt
+
+  user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Notification {
+  id        String            @id @default(cuid())
+  userId    String
+  type      NotificationType  @default(SYSTEM)
+  title     String
+  body      String?
+  data      Json?
+  readAt    DateTime?
+  createdAt DateTime          @default(now())
+
+  user      User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, readAt])
+  @@index([type])
+}
+
+model UserBlock {
+  id          String   @id @default(cuid())
+  blockerId   String
+  blockedId   String
+  reason      String?
+  expiresAt   DateTime?
+  createdAt   DateTime @default(now())
+
+  blocker     User     @relation("blocker", fields: [blockerId], references: [id], onDelete: Cascade)
+  blocked     User     @relation("blocked", fields: [blockedId], references: [id], onDelete: Cascade)
+
+  @@unique([blockerId, blockedId])
+  @@index([blockedId])
+}
+
+model FriendRequest {
+  id          String               @id @default(cuid())
+  senderId    String
+  receiverId  String
+  status      FriendRequestStatus  @default(PENDING)
+  message     String?
+  respondedAt DateTime?
+  createdAt   DateTime             @default(now())
+
+  sender      User                 @relation("friendRequestsSent", fields: [senderId], references: [id], onDelete: Cascade)
+  receiver    User                 @relation("friendRequestsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+
+  @@unique([senderId, receiverId])
+  @@index([receiverId])
+  @@index([status])
+}
+
+model Friendship {
+  id          String   @id @default(cuid())
+  userAId     String
+  userBId     String
+  createdAt   DateTime @default(now())
+  favorite    Boolean  @default(false)
+
+  userA       User     @relation("friendshipUserA", fields: [userAId], references: [id], onDelete: Cascade)
+  userB       User     @relation("friendshipUserB", fields: [userBId], references: [id], onDelete: Cascade)
+
+  @@unique([userAId, userBId])
+  @@unique([userBId, userAId])
+  @@index([userAId])
+  @@index([userBId])
 }
 
  

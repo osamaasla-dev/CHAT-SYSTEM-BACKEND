@@ -1,4 +1,4 @@
-import { EmailTemplateContent } from '../types/sendEmail.types';
+import { EmailTemplateContent } from '../types/send-email.types';
 
 interface MfaCodeTemplateParams {
   userName: string;
