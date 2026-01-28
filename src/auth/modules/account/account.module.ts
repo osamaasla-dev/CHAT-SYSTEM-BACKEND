@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { AccountService } from './account.service';
 import { SignupService } from './services/signup.service';
 import { LoginService } from './services/login.service';
 import { AccountLoggingService } from './services/account-logging.service';
@@ -8,6 +7,7 @@ import { CommonModule } from 'src/common/common.module';
 import { RedisModule } from 'src/redis/redis.module';
 import { LoggingModule } from 'src/logging/logging.module';
 import { MailModule } from 'src/mail/mail.module';
+import { AccountController } from './account.controller';
 
 @Module({
   imports: [
@@ -17,12 +17,7 @@ import { MailModule } from 'src/mail/mail.module';
     LoggingModule,
     MailModule,
   ],
-  providers: [
-    AccountService,
-    SignupService,
-    LoginService,
-    AccountLoggingService,
-  ],
-  exports: [AccountService],
+  providers: [SignupService, LoginService, AccountLoggingService],
+  controllers: [AccountController],
 })
 export class AccountModule {}

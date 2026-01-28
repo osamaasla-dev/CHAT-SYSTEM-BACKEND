@@ -3,6 +3,8 @@ import { AuthProviderRepository } from 'src/auth/providers/google/repository/aut
 import { UsersService } from 'src/users/users.service';
 import { AuthProviderType, Prisma, User, UserStatus } from '@prisma/client';
 import type { GoogleUserInfo } from 'src/auth/providers/google/types/google.types';
+import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { UserAuthAccountService } from 'src/users/features/auth/user-auth-account.service';
 
 @Injectable()
 export class GoogleUserResolverService {
@@ -11,6 +13,8 @@ export class GoogleUserResolverService {
   constructor(
     private readonly authProviderRepository: AuthProviderRepository,
     private readonly usersService: UsersService,
+    private readonly userAuthEmailService: UserAuthEmailService,
+    private readonly userAuthAccountService: UserAuthAccountService,
   ) {}
 
   async resolveUser(
@@ -45,7 +49,10 @@ export class GoogleUserResolverService {
     }
 
     this.logger.log('provider not found, resolving by email');
-    const existingUser = await this.usersService.findByEmail(profile.email, tx);
+    const existingUser = await this.userAuthEmailService.findByEmail(
+      profile.email,
+      tx,
+    );
 
     if (existingUser) {
       this.ensureUserActive(existingUser);
@@ -73,7 +80,7 @@ export class GoogleUserResolverService {
   ): Promise<User> {
     if (!user.emailVerifiedAt || user.status === UserStatus.PENDING) {
       this.logger.log('mark email verified for user');
-      return this.usersService.markEmailVerified(user.id, tx);
+      return this.userAuthEmailService.markEmailVerified(user.id, tx);
     }
 
     return user;
@@ -125,9 +132,10 @@ export class GoogleUserResolverService {
       [profile.given_name, profile.family_name].filter(Boolean).join(' ') ||
       'Google User';
 
-    const username = await this.usersService.generateUniqueUsername(name);
+    const username =
+      await this.userAuthAccountService.generateUniqueUsername(name);
 
-    return this.usersService.createUser(
+    return this.userAuthAccountService.createUser(
       {
         name,
         username,

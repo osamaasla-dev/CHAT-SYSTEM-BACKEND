@@ -1,18 +1,20 @@
 import { Injectable, Logger, BadRequestException } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
-import { UsersService } from 'src/users/users.service';
 import { MailService } from 'src/mail/mail.service';
 import { UserStatus } from '@prisma/client';
-import { AUTH_RATE_LIMITS } from 'src/auth/constants/rate-limit.constants';
+import { ACCOUNT_RATE_LIMITS } from '../constants/rate-limit.constants';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
 import { AccountLoggingService } from './account-logging.service';
+import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { UserAuthAccountService } from 'src/users/features/auth/user-auth-account.service';
 
 @Injectable()
 export class SignupService {
   private readonly logger = new Logger(SignupService.name);
 
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userAuthEmailService: UserAuthEmailService,
+    private readonly userAuthAccountService: UserAuthAccountService,
     private readonly mailService: MailService,
     private readonly rateLimitService: RateLimitService,
     private readonly accountLoggingService: AccountLoggingService,
@@ -23,7 +25,7 @@ export class SignupService {
 
     await this.accountLoggingService.signupStarted(email, name);
 
-    const { limit, windowSeconds, keyPrefix } = AUTH_RATE_LIMITS.SIGNUP;
+    const { limit, windowSeconds, keyPrefix } = ACCOUNT_RATE_LIMITS.SIGNUP;
     await this.rateLimitService.enforceRateLimit({
       keyPrefix,
       identifier: email,
@@ -34,8 +36,8 @@ export class SignupService {
 
     this.logger.log('Signup flow started', email);
     const [existingUser, pendingEmailUser] = await Promise.all([
-      this.usersService.findByEmail(email),
-      this.usersService.findByPendingEmail(email),
+      this.userAuthEmailService.findByEmail(email),
+      this.userAuthEmailService.findByPendingEmail(email),
     ]);
 
     if (pendingEmailUser) {
@@ -65,15 +67,14 @@ export class SignupService {
           userName: name,
         });
 
-      const refreshedUser = await this.usersService.refreshPendingUser(
-        existingUser.id,
-        {
+      const refreshedUser =
+        await this.userAuthAccountService.refreshPendingUser({
+          userId: existingUser.id,
           name,
           hashedPassword,
           verificationDigest: digest,
           verificationExpiresAt: expiresAt,
-        },
-      );
+        });
 
       await this.accountLoggingService.verificationEmailSent(
         refreshedUser.email,
@@ -93,14 +94,15 @@ export class SignupService {
       };
     }
 
-    const username = await this.usersService.generateUniqueUsername(name);
+    const username =
+      await this.userAuthAccountService.generateUniqueUsername(name);
 
     const { digest, expiresAt } = await this.mailService.sendVerificationEmail({
       to: email,
       userName: name,
     });
 
-    const user = await this.usersService.createUser({
+    const user = await this.userAuthAccountService.createUser({
       name,
       username,
       email,

@@ -6,10 +6,8 @@ import {
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
 import * as bcrypt from 'bcrypt';
-import { UsersService } from 'src/users/users.service';
 import { AccountLoggingService } from './account-logging.service';
 import { Logger } from '@nestjs/common';
-import { AUTH_RATE_LIMITS } from 'src/auth/constants/rate-limit.constants';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
 import { RequestContextService } from 'src/common/services/request-context.service';
 import { RedisService } from 'src/redis/redis.service';
@@ -17,16 +15,18 @@ import {
   MFA_TEMP_SESSION_COOKIE,
   MfaTempSessionPayload,
   setCookie,
-} from 'src/auth/utils/mfa-utils';
-import { MFA_TEMP_SESSION_TTL_SECONDS } from 'src/auth/constants/mfa.constants';
+} from 'src/auth/modules/mfa/utils/mfa-utils';
+import { MFA_TEMP_SESSION_TTL_SECONDS } from '../../mfa/constants/mfa.constants';
 import { generateToken } from 'src/common/utils/crypto-hash';
+import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { ACCOUNT_RATE_LIMITS } from '../constants/rate-limit.constants';
 
 @Injectable()
 export class LoginService {
   private readonly logger = new Logger(LoginService.name);
 
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userAuthEmailService: UserAuthEmailService,
     private readonly accountLoggingService: AccountLoggingService,
     private readonly rateLimitService: RateLimitService,
     private readonly requestContextService: RequestContextService,
@@ -45,7 +45,7 @@ export class LoginService {
 
     await this.accountLoggingService.loginStarted(email);
 
-    const { limit, windowSeconds, keyPrefix } = AUTH_RATE_LIMITS.LOGIN;
+    const { limit, windowSeconds, keyPrefix } = ACCOUNT_RATE_LIMITS.LOGIN;
     const { key: loginRateLimitKey } =
       await this.rateLimitService.enforceRateLimit({
         keyPrefix,
@@ -54,7 +54,7 @@ export class LoginService {
         windowSeconds,
       });
 
-    const user = await this.usersService.findByEmail(email);
+    const user = await this.userAuthEmailService.findByEmail(email);
 
     if (!user) {
       await this.accountLoggingService.loginFailed(email, 'USER_NOT_FOUND');

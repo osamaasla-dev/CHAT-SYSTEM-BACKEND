@@ -1,5 +1,4 @@
 import { Module, forwardRef } from '@nestjs/common';
-import { MfaService } from './mfa.service';
 import { CreateMfaChallengeService } from './services/create-mfa-challenge.service';
 import { VerifyMfaChallengeService } from './services/verify-mfa-challenge.service';
 import { MfaLoggingService } from './services/mfa-logging.service';
@@ -10,6 +9,7 @@ import { SessionsModule } from 'src/sessions/sessions.module';
 import { TokenModule } from '../token/token.module';
 import { UsersModule } from 'src/users/users.module';
 import { LoggingModule } from 'src/logging/logging.module';
+import { MfaController } from './mfa.controller';
 
 @Module({
   imports: [
@@ -22,11 +22,10 @@ import { LoggingModule } from 'src/logging/logging.module';
     LoggingModule,
   ],
   providers: [
-    MfaService,
     CreateMfaChallengeService,
     VerifyMfaChallengeService,
     MfaLoggingService,
   ],
-  exports: [MfaService],
+  controllers: [MfaController],
 })
 export class MfaModule {}

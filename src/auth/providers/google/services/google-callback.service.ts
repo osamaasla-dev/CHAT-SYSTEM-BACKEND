@@ -2,14 +2,14 @@ import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
 import { Prisma } from '@prisma/client';
-import { SessionsService } from 'src/sessions/sessions.service';
 import { RequestContextService } from 'src/common/services/request-context.service';
 import { GoogleLoggingService } from './google-logging.service';
 import { PrismaService } from 'src/prisma/prisma.service';
 import { GoogleOAuthService } from './google-oauth.service';
 import { GoogleUserResolverService } from './google-user-resolver.service';
 import { FrontendRedirectService } from 'src/common/services/frontend-redirect.service';
-import { TokenService } from 'src/auth/modules/token/token.service';
+import { TokenManagerService } from 'src/auth/modules/token/services/token-manager.service';
+import { SessionLifecycleService } from 'src/sessions/services/session-lifecycle.service';
 
 @Injectable()
 export class GoogleCallbackService {
@@ -18,8 +18,8 @@ export class GoogleCallbackService {
   constructor(
     private readonly configService: ConfigService,
     private readonly prisma: PrismaService,
-    private readonly sessionsService: SessionsService,
-    private readonly tokenService: TokenService,
+    private readonly sessionLifecycleService: SessionLifecycleService,
+    private readonly tokenManager: TokenManagerService,
     private readonly requestContextService: RequestContextService,
     private readonly googleLoggingService: GoogleLoggingService,
     private readonly googleOAuthService: GoogleOAuthService,
@@ -59,14 +59,14 @@ export class GoogleCallbackService {
             tx,
           );
 
-          const session = await this.sessionsService.createSession(
+          const session = await this.sessionLifecycleService.createSession(
             resolvedUser.id,
             sessionContext,
             tx,
           );
 
           const newRefreshVersion = session.refreshVersion + 1;
-          const tokens = this.tokenService.tokenManager.generateTokens(
+          const tokens = this.tokenManager.generateTokens(
             {
               id: resolvedUser.id,
               email: resolvedUser.email,
@@ -78,7 +78,7 @@ export class GoogleCallbackService {
             },
           );
 
-          await this.sessionsService.persistRefreshToken(
+          await this.sessionLifecycleService.persistRefreshToken(
             session.id,
             tokens.refresh_token,
             session.refreshVersion,
@@ -90,7 +90,7 @@ export class GoogleCallbackService {
         },
       );
 
-      this.tokenService.tokenManager.setTokenCookies(tokens, response);
+      this.tokenManager.setTokenCookies(tokens, response);
       await this.googleLoggingService.googleLoginSuccess(user.id, user.email);
 
       this.frontendRedirect.redirect(response, frontendRedirectUrl);

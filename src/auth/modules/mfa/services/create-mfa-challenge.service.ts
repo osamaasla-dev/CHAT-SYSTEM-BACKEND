@@ -3,7 +3,7 @@ import type { FastifyReply } from 'fastify';
 import { MailService } from 'src/mail/mail.service';
 import { RedisService } from 'src/redis/redis.service';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
-import { AUTH_RATE_LIMITS } from 'src/auth/constants/rate-limit.constants';
+import { MFA_RATE_LIMITS } from '../constants/rate-limit.constants';
 import {
   buildChallengeKey,
   buildUserPointerKey,
@@ -13,10 +13,10 @@ import {
   MFA_TOKEN_COOKIE,
   resolveTempSessionPayload,
   setCookie,
-} from 'src/auth/utils/mfa-utils';
+} from '../utils/mfa-utils';
 import type { RequestWithCookies } from 'src/common/types/request.types';
 import { ConfigService } from '@nestjs/config';
-import { MFA_CHALLENGE_TTL_SECONDS } from 'src/auth/constants/mfa.constants';
+import { MFA_CHALLENGE_TTL_SECONDS } from '../constants/mfa.constants';
 import { cryptoHash, generateToken } from 'src/common/utils/crypto-hash';
 import { MfaLoggingService } from './mfa-logging.service';
 
@@ -91,7 +91,7 @@ export class CreateMfaChallengeService {
   }
 
   private async applyResendRateLimit(userId: string) {
-    const { keyPrefix, limit, windowSeconds } = AUTH_RATE_LIMITS.MFA_RESEND;
+    const { keyPrefix, limit, windowSeconds } = MFA_RATE_LIMITS.MFA_RESEND;
 
     await this.rateLimitService.enforceRateLimit({
       keyPrefix,

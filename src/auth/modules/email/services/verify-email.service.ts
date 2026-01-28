@@ -1,21 +1,23 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { UsersService } from 'src/users/users.service';
 import { EmailLoggingService } from './email-logging.service';
-import { SessionsService } from 'src/sessions/sessions.service';
+import { SessionSecurityService } from 'src/sessions/services/session-security.service';
+import { SessionRevocationService } from 'src/sessions/services/session-revocation.service';
 import { RequestContextService } from 'src/common/services/request-context.service';
 import type { RequestWithCookies } from 'src/common/types/request.types';
 import { ConfigService } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
 import { FrontendRedirectService } from 'src/common/services/frontend-redirect.service';
 import { cryptoHash } from 'src/common/utils/crypto-hash';
+import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
 
 @Injectable()
 export class VerifyEmailService {
   private readonly logger = new Logger(VerifyEmailService.name);
   constructor(
-    private readonly usersService: UsersService,
+    private readonly userAuthEmailService: UserAuthEmailService,
     private readonly emailLoggingService: EmailLoggingService,
-    private readonly sessionsService: SessionsService,
+    private readonly sessionSecurityService: SessionSecurityService,
+    private readonly sessionRevocationService: SessionRevocationService,
     private readonly requestContextService: RequestContextService,
     private readonly configService: ConfigService,
     private readonly frontendRedirectService: FrontendRedirectService,
@@ -44,7 +46,8 @@ export class VerifyEmailService {
     }
 
     const digest = cryptoHash(token);
-    const user = await this.usersService.findByVerificationTokenDigest(digest);
+    const user =
+      await this.userAuthEmailService.findByVerificationTokenDigest(digest);
 
     if (!user) {
       this.logger.warn('Invalid verification token');
@@ -100,10 +103,11 @@ export class VerifyEmailService {
       if (refreshToken) {
         try {
           const sessionContext = this.requestContextService.snapshot();
-          const { session } = await this.sessionsService.validateRefreshToken(
-            refreshToken,
-            sessionContext,
-          );
+          const { session } =
+            await this.sessionSecurityService.validateRefreshToken(
+              refreshToken,
+              sessionContext,
+            );
           activeSessionId = session.id;
         } catch (error) {
           this.logger.warn(
@@ -125,16 +129,16 @@ export class VerifyEmailService {
     }
 
     const oldEmail = user.email;
-    await this.usersService.markEmailVerified(user.id);
+    await this.userAuthEmailService.markEmailVerified(user.id);
 
     if (isPendingEmailChange) {
       if (activeSessionId) {
-        await this.sessionsService.revokeAllOtherSessions(
+        await this.sessionRevocationService.revokeAllOtherSessions(
           user.id,
           activeSessionId,
         );
       } else {
-        await this.sessionsService.revokeAllSessionsForUser(user.id);
+        await this.sessionRevocationService.revokeAllSessionsForUser(user.id);
       }
       await this.emailLoggingService.emailChangeCompleted(
         user.id,

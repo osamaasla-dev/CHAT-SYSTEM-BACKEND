@@ -1,14 +1,16 @@
 import { Injectable, BadRequestException, Logger } from '@nestjs/common';
 import { UsersService } from 'src/users/users.service';
 import { EmailLoggingService } from './email-logging.service';
-import { AUTH_RATE_LIMITS } from 'src/auth/constants/rate-limit.constants';
+import { EMAIL_RATE_LIMITS } from '../constants/rate-limit.constants';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
 import { MailService } from 'src/mail/mail.service';
+import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
 @Injectable()
 export class ChangeEmailService {
   private readonly logger = new Logger(ChangeEmailService.name);
   constructor(
     private readonly usersService: UsersService,
+    private readonly userAuthEmailService: UserAuthEmailService,
     private readonly emailLoggingService: EmailLoggingService,
     private readonly rateLimitService: RateLimitService,
     private readonly mailService: MailService,
@@ -38,7 +40,7 @@ export class ChangeEmailService {
     }
     this.logger.log('Change email started');
 
-    const { limit, windowSeconds, keyPrefix } = AUTH_RATE_LIMITS.CHANGE_EMAIL;
+    const { limit, windowSeconds, keyPrefix } = EMAIL_RATE_LIMITS.CHANGE_EMAIL;
 
     await this.rateLimitService.enforceRateLimit({
       keyPrefix,
@@ -55,7 +57,7 @@ export class ChangeEmailService {
           userName: user.name,
         });
 
-      await this.usersService.changeEmail(user.id, {
+      await this.userAuthEmailService.changeEmail(user.id, {
         pendingEmail: newEmail,
         verificationDigest: digest,
         verificationExpiresAt: expiresAt,

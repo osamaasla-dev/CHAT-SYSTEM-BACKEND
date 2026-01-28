@@ -1,6 +1,7 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { RequestContextService } from 'src/common/services/request-context.service';
-import { SessionsService } from 'src/sessions/sessions.service';
+import { SessionSecurityService } from 'src/sessions/services/session-security.service';
+import { SessionRevocationService } from 'src/sessions/services/session-revocation.service';
 import type { RequestWithCookies } from 'src/common/types/request.types';
 import { SessionLoggingService } from './session-logging.service';
 import { Logger } from '@nestjs/common';
@@ -10,12 +11,12 @@ export class LogoutService {
   private readonly logger = new Logger(LogoutService.name);
   constructor(
     private readonly requestContextService: RequestContextService,
-    private readonly sessionsService: SessionsService,
+    private readonly sessionSecurityService: SessionSecurityService,
+    private readonly sessionRevocationService: SessionRevocationService,
     private readonly sessionLoggingService: SessionLoggingService,
   ) {}
 
-  async execute(params: { request: RequestWithCookies }) {
-    const { request } = params;
+  async execute(request: RequestWithCookies) {
     try {
       this.logger.log('Logout started');
       const refreshToken = request.cookies?.refresh_token;
@@ -26,12 +27,13 @@ export class LogoutService {
       }
 
       const sessionContext = this.requestContextService.snapshot();
-      const { session } = await this.sessionsService.validateRefreshToken(
-        refreshToken,
-        sessionContext,
-      );
+      const { session } =
+        await this.sessionSecurityService.validateRefreshToken(
+          refreshToken,
+          sessionContext,
+        );
 
-      await this.sessionsService.revokeSession(session.id);
+      await this.sessionRevocationService.revokeSession(session.id);
 
       this.sessionLoggingService.logoutSuccess(session.userId, session.id);
 

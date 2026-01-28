@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { forwardRef, Module } from '@nestjs/common';
 import { CommonModule } from 'src/common/common.module';
 import { SessionsModule } from 'src/sessions/sessions.module';
 import { TokenModule } from '../token/token.module';
@@ -8,11 +8,16 @@ import { SessionLoggingService } from './services/session-logging.service';
 import { LogoutService } from './services/logout.service';
 import { LogoutAllDevicesService } from './services/logout-all-devices.service';
 import { RefreshTokensService } from './services/refresh-tokens.service';
-import { TokenIntrospectionService } from './services/token-introspection.service';
-import { AuthSessionService } from './auth-session.service';
+import { IntrospectTokenService } from './services/introspect-token.service';
+import { SessionController } from './session.controller';
+import { RevokeSessionService } from './services/revoke-session.service';
+import { AuthModule } from 'src/auth/auth.module';
+import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
+    PrismaModule,
+    forwardRef(() => AuthModule),
     CommonModule,
     SessionsModule,
     TokenModule,
@@ -20,13 +25,13 @@ import { AuthSessionService } from './auth-session.service';
     LoggingModule,
   ],
   providers: [
-    AuthSessionService,
     SessionLoggingService,
     LogoutService,
     LogoutAllDevicesService,
     RefreshTokensService,
-    TokenIntrospectionService,
+    IntrospectTokenService,
+    RevokeSessionService,
   ],
-  exports: [AuthSessionService],
+  controllers: [SessionController],
 })
 export class AuthSessionModule {}

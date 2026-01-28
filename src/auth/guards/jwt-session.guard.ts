@@ -4,8 +4,8 @@ import {
   ExecutionContext,
   UnauthorizedException,
 } from '@nestjs/common';
-import { PrismaService } from 'src/prisma/prisma.service';
 import type { RequestWithUser } from '../types/auth.types';
+import { PrismaService } from 'src/prisma/prisma.service';
 
 @Injectable()
 export class JwtSessionGuard implements CanActivate {
@@ -16,7 +16,9 @@ export class JwtSessionGuard implements CanActivate {
     const user = request.user; // decoded JWT from JwtStrategy
 
     const session = await this.prisma.session.findUnique({
-      where: { id: user.sessionId },
+      where: {
+        id: user.sessionId,
+      },
     });
 
     if (!session || session.revokedAt) {

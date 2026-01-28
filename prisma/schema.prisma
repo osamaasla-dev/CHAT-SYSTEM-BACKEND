@@ -46,6 +46,7 @@ enum ParticipantRole {
 enum MessageContentType {
   TEXT
   EMOJI
+  IMAGE
 }
 
 enum NotificationType {
@@ -222,9 +223,21 @@ model Message {
   chat          Chat               @relation(fields: [chatId], references: [id], onDelete: Cascade)
   sender        User               @relation(fields: [senderId], references: [id], onDelete: Cascade)
   reactions     MessageReaction[]
+  media         Media?
 
   @@index([chatId])
   @@index([senderId])
+}
+
+model Media {
+  id        String   @id @default(cuid())
+  messageId String   @unique
+  imageUrl  String
+  publicId  String
+  createdAt DateTime @default(now())
+  deletedAt DateTime?
+
+  message   Message  @relation(fields: [messageId], references: [id], onDelete: Cascade)
 }
 
 model MessageReaction {

@@ -1,5 +1,4 @@
 import type { FastifyRequest } from 'fastify';
-import type { Session } from '@prisma/client';
 
 export interface JwtPayload {
   sub: string;
@@ -26,19 +25,4 @@ export interface CurrentUserType {
 
 export interface RequestWithUser extends FastifyRequest {
   user: CurrentUserType;
-}
-
-export type SessionMetadata = Pick<
-  Session,
-  | 'id'
-  | 'userId'
-  | 'expiresAt'
-  | 'revokedAt'
-  | 'refreshVersion'
-  | 'ip'
-  | 'userAgent'
->;
-
-export interface VerifyResult {
-  verified: boolean;
 }

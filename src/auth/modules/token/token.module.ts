@@ -4,7 +4,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AccessTokenService } from './services/access-token.service';
 import { RefreshTokenService } from './services/refresh-token.service';
 import { TokenManagerService } from './services/token-manager.service';
-import { TokenService } from './token.service';
 
 @Module({
   imports: [
@@ -19,12 +18,7 @@ import { TokenService } from './token.service';
       }),
     }),
   ],
-  providers: [
-    AccessTokenService,
-    RefreshTokenService,
-    TokenManagerService,
-    TokenService,
-  ],
-  exports: [TokenService],
+  providers: [AccessTokenService, RefreshTokenService, TokenManagerService],
+  exports: [AccessTokenService, RefreshTokenService, TokenManagerService],
 })
 export class TokenModule {}

@@ -3,7 +3,7 @@ import type { FastifyReply } from 'fastify';
 import { ConfigService } from '@nestjs/config';
 import { RedisService } from 'src/redis/redis.service';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
-import { AUTH_RATE_LIMITS } from 'src/auth/constants/rate-limit.constants';
+import { MFA_RATE_LIMITS } from '../constants/rate-limit.constants';
 import {
   buildChallengeKey,
   buildUserPointerKey,
@@ -12,14 +12,13 @@ import {
   MFA_TEMP_SESSION_COOKIE,
   MFA_TOKEN_COOKIE,
   resolveTempSessionPayload,
-} from 'src/auth/utils/mfa-utils';
-import { SessionsService } from 'src/sessions/sessions.service';
-import { TokenService } from '../../token/token.service';
+} from '../utils/mfa-utils';
 import { MfaLoggingService } from './mfa-logging.service';
-import { VerifyResult } from 'src/auth/types/auth.types';
-import { UsersService } from 'src/users/users.service';
 import { RequestWithCookies } from 'src/common/types/request.types';
 import { cryptoHash } from 'src/common/utils/crypto-hash';
+import { UserAuthAccountService } from 'src/users/features/auth/user-auth-account.service';
+import { TokenManagerService } from '../../token/services/token-manager.service';
+import { SessionLifecycleService } from 'src/sessions/services/session-lifecycle.service';
 
 @Injectable()
 export class VerifyMfaChallengeService {
@@ -29,17 +28,17 @@ export class VerifyMfaChallengeService {
     private readonly redisService: RedisService,
     private readonly rateLimitService: RateLimitService,
     private readonly configService: ConfigService,
-    private readonly sessionsService: SessionsService,
-    private readonly tokenService: TokenService,
+    private readonly sessionLifecycleService: SessionLifecycleService,
+    private readonly tokenManager: TokenManagerService,
     private readonly mfaLoggingService: MfaLoggingService,
-    private readonly usersService: UsersService,
+    private readonly userAuthAccountService: UserAuthAccountService,
   ) {}
 
   async execute(
     code: string,
     request: RequestWithCookies,
     response: FastifyReply,
-  ): Promise<VerifyResult> {
+  ): Promise<{ verified: boolean }> {
     this.logger.log('Verifying MFA challenge started');
 
     const { payload: userPayload, hashedTempSessionId } =
@@ -96,31 +95,31 @@ export class VerifyMfaChallengeService {
     await this.redisService.delete(challengeKey);
     await this.redisService.delete(buildUserPointerKey(userPayload.id));
 
-    const session = await this.sessionsService.createSession(
+    const session = await this.sessionLifecycleService.createSession(
       userPayload.id,
       userPayload.sessionContext,
     );
     const newRefreshVersion = session.refreshVersion + 1;
-    const tokens = this.tokenService.tokenManager.generateTokens(userPayload, {
+    const tokens = this.tokenManager.generateTokens(userPayload, {
       id: session.id,
       refreshVersion: newRefreshVersion,
     });
 
-    await this.sessionsService.persistRefreshToken(
+    await this.sessionLifecycleService.persistRefreshToken(
       session.id,
       tokens.refresh_token,
       session.refreshVersion,
       userPayload.sessionContext,
     );
 
-    this.tokenService.tokenManager.setTokenCookies(tokens, response);
+    this.tokenManager.setTokenCookies(tokens, response);
 
     clearCookie(MFA_TOKEN_COOKIE, response, this.configService);
     clearCookie(MFA_TEMP_SESSION_COOKIE, response, this.configService);
 
     await this.redisService.delete(hashedTempSessionId);
 
-    await this.usersService.updateLastLoginAt(userPayload.id);
+    await this.userAuthAccountService.updateLastLoginAt(userPayload.id);
     await this.mfaLoggingService.mfaChallengeVerified(userPayload.id);
     await this.rateLimitService.resetRateLimit(userPayload.loginRateLimitKey);
 
@@ -132,7 +131,7 @@ export class VerifyMfaChallengeService {
   }
 
   private async applyVerifyRateLimit(userId: string) {
-    const { keyPrefix, limit, windowSeconds } = AUTH_RATE_LIMITS.MFA_VERIFY;
+    const { keyPrefix, limit, windowSeconds } = MFA_RATE_LIMITS.MFA_VERIFY;
 
     await this.rateLimitService.enforceRateLimit({
       keyPrefix,

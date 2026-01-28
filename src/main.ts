@@ -6,16 +6,19 @@ import { ValidationPipe } from '@nestjs/common';
 import { ResponseInterceptor } from './common/interceptors/response.interceptor';
 import { HttpErrorFilter } from './common/filters/http-exception.filter';
 import cookie from '@fastify/cookie';
+import multipart from '@fastify/multipart';
 
 async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
       trustProxy: true,
+      bodyLimit: 50 * 1024 * 1024,
     }),
   );
 
   await app.register(cookie);
+  await app.register(multipart);
 
   app.useGlobalPipes(
     new ValidationPipe({

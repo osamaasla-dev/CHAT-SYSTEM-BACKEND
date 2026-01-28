@@ -13,6 +13,8 @@ import { SessionsModule } from './sessions/sessions.module';
 import { LoggingModule } from './logging/logging.module';
 import { MailModule } from './mail/mail.module';
 import { RedisModule } from './redis/redis.module';
+import { MediaModule } from './media/media.module';
+import { ModerationModule } from './moderation/moderation.module';
 
 @Module({
   imports: [
@@ -30,6 +32,8 @@ import { RedisModule } from './redis/redis.module';
     LoggingModule,
     MailModule,
     RedisModule,
+    MediaModule,
+    ModerationModule,
   ],
   controllers: [AppController],
   providers: [
