@@ -4,10 +4,10 @@ import { AppService } from './app.service';
 import { UsersModule } from './users/users.module';
 import { AuthModule } from './auth/auth.module';
 import { ConfigModule } from '@nestjs/config';
-import { ThrottlerModule } from '@nestjs/throttler';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { CommonModule } from './common/common.module';
 import { RequestContextMiddleware } from './common/middleware/request-context.middleware';
-import { APP_INTERCEPTOR } from '@nestjs/core';
+import { APP_GUARD, APP_INTERCEPTOR } from '@nestjs/core';
 import { RequestContextInterceptor } from './common/interceptors/request-context.interceptor';
 import { SessionsModule } from './sessions/sessions.module';
 import { LoggingModule } from './logging/logging.module';
@@ -15,6 +15,9 @@ import { MailModule } from './mail/mail.module';
 import { RedisModule } from './redis/redis.module';
 import { MediaModule } from './media/media.module';
 import { ModerationModule } from './moderation/moderation.module';
+import { SettingsModule } from './settings/settings.module';
+import { BlocksModule } from './blocks/blocks.module';
+import { ContactsModule } from './contacts/contacts.module';
 
 @Module({
   imports: [
@@ -22,7 +25,7 @@ import { ModerationModule } from './moderation/moderation.module';
     ThrottlerModule.forRoot([
       {
         ttl: 60,
-        limit: 10,
+        limit: 5,
       },
     ]),
     UsersModule,
@@ -34,6 +37,9 @@ import { ModerationModule } from './moderation/moderation.module';
     RedisModule,
     MediaModule,
     ModerationModule,
+    SettingsModule,
+    BlocksModule,
+    ContactsModule,
   ],
   controllers: [AppController],
   providers: [
@@ -41,6 +47,10 @@ import { ModerationModule } from './moderation/moderation.module';
     {
       provide: APP_INTERCEPTOR,
       useClass: RequestContextInterceptor,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ThrottlerGuard,
     },
   ],
 })

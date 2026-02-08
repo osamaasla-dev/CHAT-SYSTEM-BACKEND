@@ -10,11 +10,9 @@ import { MailModule } from 'src/mail/mail.module';
 import { LoggingModule } from 'src/logging/logging.module';
 import { PasswordController } from './password.controller';
 import { AuthModule } from 'src/auth/auth.module';
-import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
-    PrismaModule,
     forwardRef(() => AuthModule),
     forwardRef(() => UsersModule),
     SessionsModule,

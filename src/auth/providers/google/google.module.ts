@@ -15,6 +15,8 @@ import { SessionsModule } from 'src/sessions/sessions.module';
 import { GoogleLoggingService } from './services/google-logging.service';
 import { LoggingModule } from 'src/logging/logging.module';
 import { TokenModule } from 'src/auth/modules/token/token.module';
+import { PrivacyModule } from 'src/settings/features/privacy/privacy.module';
+import { NotificationsSettingsModule } from 'src/settings/features/notifications/notifications-settings.module';
 
 @Module({
   imports: [
@@ -26,6 +28,8 @@ import { TokenModule } from 'src/auth/modules/token/token.module';
     CommonModule,
     SessionsModule,
     LoggingModule,
+    PrivacyModule,
+    NotificationsSettingsModule,
   ],
   providers: [
     GoogleService,

@@ -20,6 +20,20 @@ export class UsersService {
     return this.usersRepository.findUnique({ username }, tx);
   }
 
+  async findByEmail(
+    email: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique({ email }, tx);
+  }
+
+  async findByPendingEmail(
+    pendingEmail: string,
+    tx?: Prisma.TransactionClient,
+  ): Promise<User | null> {
+    return this.usersRepository.findUnique({ pendingEmail }, tx);
+  }
+
   async ensureUserExists(
     id: string,
     tx?: Prisma.TransactionClient,

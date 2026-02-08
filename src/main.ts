@@ -12,7 +12,6 @@ async function bootstrap() {
   const app = await NestFactory.create<NestFastifyApplication>(
     AppModule,
     new FastifyAdapter({
-      trustProxy: true,
       bodyLimit: 50 * 1024 * 1024,
     }),
   );
@@ -30,6 +29,7 @@ async function bootstrap() {
 
   app.enableCors({
     origin: 'http://localhost:5173',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
     credentials: true,
   });
   app.useGlobalInterceptors(new ResponseInterceptor());

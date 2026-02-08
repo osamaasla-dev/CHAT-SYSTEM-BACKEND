@@ -61,12 +61,6 @@ enum ThemePreference {
   DARK
 }
 
-enum FriendRequestStatus {
-  PENDING
-  ACCEPTED
-  DECLINED
-  CANCELED
-}
 
 enum PresenceStatus {
   ONLINE
@@ -76,7 +70,7 @@ enum PresenceStatus {
 
 enum PrivacyLevel {
   ALL
-  FRIENDS
+  CONTACTS
   ONLY_ME
 }
 
@@ -115,15 +109,13 @@ model User {
   messages                 Message[]
   messageReactions         MessageReaction[]
   notifications            Notification[]
-  blocksInitiated          UserBlock[]    @relation("blocker")
-  blocksReceived           UserBlock[]    @relation("blocked")
-  friendRequestsSent       FriendRequest[] @relation("friendRequestsSent")
-  friendRequestsReceived   FriendRequest[] @relation("friendRequestsReceived")
-  friendshipsInitiated     Friendship[]    @relation("friendshipUserA")
-  friendshipsReceived      Friendship[]    @relation("friendshipUserB")
-  settings                 UserSettings?
-  deletedAt                DateTime?
-
+  blocksInitiated          Block[]    @relation("blocker")
+  blocksReceived           Block[]    @relation("blocked")
+  contactsOwned            Contact[]  @relation("OwnerContacts")
+  contactsReceived         Contact[]  @relation("UserContacts")
+  settings                 PrivacySettings?
+  notificationSettings     NotificationSettings?
+  deletedAt                DateTime? 
 }
 
 model AuthProvider {
@@ -254,22 +246,29 @@ model MessageReaction {
   @@index([userId])
 }
 
-model UserSettings {
+model PrivacySettings {
   id                   String          @id @default(cuid())
   userId               String          @unique
-  onlineVisibility     PrivacyLevel    @default(FRIENDS)
-  readReceiptsVisibility PrivacyLevel  @default(FRIENDS)
-  profileVisibility    PrivacyLevel    @default(FRIENDS)
-  messageNotifications Boolean         @default(true)
-  soundNotifications   Boolean         @default(true)
-  notifyOnMentions     Boolean         @default(true)
-  allowDm              PrivacyLevel    @default(ALL)
-  allowSearch          PrivacyLevel    @default(ALL)
-  themePreference      ThemePreference @default(SYSTEM)
-  statusEmoji          String?
+  onlineVisibility     Boolean         @default(true)
+  lastSeenVisibility   Boolean         @default(true)
+  readReceiptsVisibility Boolean         @default(true)
+  avatarVisibility     PrivacyLevel    @default(CONTACTS)
+  allowDirectMessages  PrivacyLevel    @default(ALL)
+  usernameSearch       PrivacyLevel    @default(ALL)
   updatedAt            DateTime        @updatedAt
 
   user                 User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model NotificationSettings {
+  id                   String   @id @default(cuid())
+  userId               String   @unique
+  messageNotifications Boolean  @default(true)
+  soundNotifications   Boolean  @default(true)
+  notifyOnMentions     Boolean  @default(true)
+  updatedAt            DateTime @updatedAt
+
+  user                 User     @relation(fields: [userId], references: [id], onDelete: Cascade)
 }
 
 model Notification {
@@ -288,7 +287,7 @@ model Notification {
   @@index([type])
 }
 
-model UserBlock {
+model Block {
   id          String   @id @default(cuid())
   blockerId   String
   blockedId   String
@@ -303,37 +302,18 @@ model UserBlock {
   @@index([blockedId])
 }
 
-model FriendRequest {
-  id          String               @id @default(cuid())
-  senderId    String
-  receiverId  String
-  status      FriendRequestStatus  @default(PENDING)
-  message     String?
-  respondedAt DateTime?
-  createdAt   DateTime             @default(now())
+model Contact {
+  id        String   @id @default(cuid())
+  ownerId   String
+  contactId String
+  createdAt DateTime @default(now())
 
-  sender      User                 @relation("friendRequestsSent", fields: [senderId], references: [id], onDelete: Cascade)
-  receiver    User                 @relation("friendRequestsReceived", fields: [receiverId], references: [id], onDelete: Cascade)
+  owner     User @relation("OwnerContacts", fields: [ownerId], references: [id], onDelete: Cascade)
+  contact   User @relation("UserContacts", fields: [contactId], references: [id], onDelete: Cascade)
 
-  @@unique([senderId, receiverId])
-  @@index([receiverId])
-  @@index([status])
-}
-
-model Friendship {
-  id          String   @id @default(cuid())
-  userAId     String
-  userBId     String
-  createdAt   DateTime @default(now())
-  favorite    Boolean  @default(false)
-
-  userA       User     @relation("friendshipUserA", fields: [userAId], references: [id], onDelete: Cascade)
-  userB       User     @relation("friendshipUserB", fields: [userBId], references: [id], onDelete: Cascade)
-
-  @@unique([userAId, userBId])
-  @@unique([userBId, userAId])
-  @@index([userAId])
-  @@index([userBId])
+  @@unique([ownerId, contactId])
+  @@index([ownerId])
+  @@index([contactId])
 }
 
  

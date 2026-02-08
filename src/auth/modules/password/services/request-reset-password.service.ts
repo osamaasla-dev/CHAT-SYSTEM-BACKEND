@@ -1,9 +1,9 @@
 import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { PASSWORD_RATE_LIMITS } from '../constants/rate-limit.constants';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
-import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { UserAuthEmailService } from 'src/users/features/credentials/user-auth-email.service';
 import { MailService } from 'src/mail/mail.service';
-import { UserAuthPasswordService } from 'src/users/features/auth/user-auth-password.service';
+import { UserAuthPasswordService } from 'src/users/features/credentials/user-auth-password.service';
 import { PasswordLoggingService } from './password-logging.service';
 
 @Injectable()

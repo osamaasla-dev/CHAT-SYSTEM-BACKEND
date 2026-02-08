@@ -1,9 +1,13 @@
-export interface UserProfileInfo {
+import { UserStatus } from '@prisma/client';
+
+export interface MyProfileInfo {
   avatarUrl: string | null;
   username: string;
   name: string;
   email: string;
   hasPassword: boolean;
+  status: UserStatus;
+  deletedAt: Date | null;
 }
 
 export interface ChangeAvatarParams {

@@ -16,7 +16,7 @@ import {
 import { MfaLoggingService } from './mfa-logging.service';
 import { RequestWithCookies } from 'src/common/types/request.types';
 import { cryptoHash } from 'src/common/utils/crypto-hash';
-import { UserAuthAccountService } from 'src/users/features/auth/user-auth-account.service';
+import { UserAuthAccountService } from 'src/users/features/credentials/user-auth-account.service';
 import { TokenManagerService } from '../../token/services/token-manager.service';
 import { SessionLifecycleService } from 'src/sessions/services/session-lifecycle.service';
 

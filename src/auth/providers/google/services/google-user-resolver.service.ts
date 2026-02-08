@@ -3,8 +3,10 @@ import { AuthProviderRepository } from 'src/auth/providers/google/repository/aut
 import { UsersService } from 'src/users/users.service';
 import { AuthProviderType, Prisma, User, UserStatus } from '@prisma/client';
 import type { GoogleUserInfo } from 'src/auth/providers/google/types/google.types';
-import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
-import { UserAuthAccountService } from 'src/users/features/auth/user-auth-account.service';
+import { UserAuthEmailService } from 'src/users/features/credentials/user-auth-email.service';
+import { UserAuthAccountService } from 'src/users/features/credentials/user-auth-account.service';
+import { PrivacyService } from 'src/settings/features/privacy/privacy.service';
+import { NotificationsSettingsService } from 'src/settings/features/notifications/notifications-settings.service';
 
 @Injectable()
 export class GoogleUserResolverService {
@@ -15,6 +17,8 @@ export class GoogleUserResolverService {
     private readonly usersService: UsersService,
     private readonly userAuthEmailService: UserAuthEmailService,
     private readonly userAuthAccountService: UserAuthAccountService,
+    private readonly privacyService: PrivacyService,
+    private readonly notificationsSettingsService: NotificationsSettingsService,
   ) {}
 
   async resolveUser(
@@ -63,6 +67,11 @@ export class GoogleUserResolverService {
 
     this.logger.log('no user found by email, creating new user');
     const newUser = await this.createUserFromGoogleProfile(profile, tx);
+    await this.privacyService.ensureSettingsForUser(newUser.id, tx);
+    await this.notificationsSettingsService.ensureSettingsForUser(
+      newUser.id,
+      tx,
+    );
     await this.createProviderRecord(newUser.id, profile, tx);
     return newUser;
   }

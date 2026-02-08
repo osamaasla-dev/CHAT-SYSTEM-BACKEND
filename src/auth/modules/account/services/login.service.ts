@@ -18,7 +18,7 @@ import {
 } from 'src/auth/modules/mfa/utils/mfa-utils';
 import { MFA_TEMP_SESSION_TTL_SECONDS } from '../../mfa/constants/mfa.constants';
 import { generateToken } from 'src/common/utils/crypto-hash';
-import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { UserAuthEmailService } from 'src/users/features/credentials/user-auth-email.service';
 import { ACCOUNT_RATE_LIMITS } from '../constants/rate-limit.constants';
 
 @Injectable()

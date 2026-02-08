@@ -8,7 +8,9 @@ import { ConfigService } from '@nestjs/config';
 import type { FastifyReply } from 'fastify';
 import { FrontendRedirectService } from 'src/common/services/frontend-redirect.service';
 import { cryptoHash } from 'src/common/utils/crypto-hash';
-import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { UserAuthEmailService } from 'src/users/features/credentials/user-auth-email.service';
+import { PrivacyService } from 'src/settings/features/privacy/privacy.service';
+import { NotificationsSettingsService } from 'src/settings/features/notifications/notifications-settings.service';
 
 @Injectable()
 export class VerifyEmailService {
@@ -21,6 +23,8 @@ export class VerifyEmailService {
     private readonly requestContextService: RequestContextService,
     private readonly configService: ConfigService,
     private readonly frontendRedirectService: FrontendRedirectService,
+    private readonly privacyService: PrivacyService,
+    private readonly notificationsSettingsService: NotificationsSettingsService,
   ) {}
 
   async execute(
@@ -130,6 +134,8 @@ export class VerifyEmailService {
 
     const oldEmail = user.email;
     await this.userAuthEmailService.markEmailVerified(user.id);
+    await this.privacyService.ensureSettingsForUser(user.id);
+    await this.notificationsSettingsService.ensureSettingsForUser(user.id);
 
     if (isPendingEmailChange) {
       if (activeSessionId) {

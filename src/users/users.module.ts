@@ -3,13 +3,15 @@ import { PrismaModule } from '../prisma/prisma.module';
 import { UsersController } from './users.controller';
 import { UsersService } from './users.service';
 import { UsersRepository } from './repositories/users.repository';
-import { UserAuthAccountService } from './features/auth/user-auth-account.service';
-import { UserAuthPasswordService } from './features/auth/user-auth-password.service';
-import { UserAuthEmailService } from './features/auth/user-auth-email.service';
+import { UserAuthAccountService } from './features/credentials/user-auth-account.service';
+import { UserAuthPasswordService } from './features/credentials/user-auth-password.service';
+import { UserAuthEmailService } from './features/credentials/user-auth-email.service';
 import { ProfileModule } from './features/profile/profile.module';
+import { AccountModule } from './features/account/account.module';
+import { SearchModule } from './features/search/search.module';
 
 @Module({
-  imports: [PrismaModule, ProfileModule],
+  imports: [PrismaModule, ProfileModule, AccountModule, SearchModule],
   controllers: [UsersController],
   providers: [
     UsersService,

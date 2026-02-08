@@ -1,4 +1,4 @@
-import { Body, Controller, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Patch, Post, UseGuards } from '@nestjs/common';
 import { Throttle } from '@nestjs/throttler';
 import { UserRole } from '@prisma/client';
 import { PASSWORD_RATE_LIMITS } from './constants/rate-limit.constants';
@@ -15,7 +15,7 @@ import { ChangePasswordService } from './services/change-password.service';
 import { RequestPasswordResetService } from './services/request-reset-password.service';
 import { ResetPasswordService } from './services/reset-password.service';
 
-@Controller('password')
+@Controller('auth')
 @Throttle({ default: { ttl: 60, limit: 5 } })
 export class PasswordController {
   constructor(
@@ -24,13 +24,7 @@ export class PasswordController {
     private readonly resetPasswordService: ResetPasswordService,
   ) {}
 
-  @Post('password/change')
-  @Throttle({
-    default: {
-      ttl: PASSWORD_RATE_LIMITS.PASSWORD_CHANGE.windowSeconds,
-      limit: PASSWORD_RATE_LIMITS.PASSWORD_CHANGE.limit,
-    },
-  })
+  @Patch('password/change')
   @UseGuards(JwtAuthGuard, JwtSessionGuard, RolesGuard)
   @Roles(UserRole.USER)
   async changePassword(
@@ -45,7 +39,7 @@ export class PasswordController {
     });
   }
 
-  @Post('password/reset/request')
+  @Patch('password/reset/request')
   @Throttle({
     default: {
       ttl: PASSWORD_RATE_LIMITS.PASSWORD_RESET.windowSeconds,

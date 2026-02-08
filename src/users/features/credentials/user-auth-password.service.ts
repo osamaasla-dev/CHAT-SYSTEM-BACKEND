@@ -77,11 +77,11 @@ export class UserAuthPasswordService {
     );
 
     if (!isPasswordMatch) {
-      throw new UnauthorizedException('Invalid current password');
+      throw new UnauthorizedException('INVALID_CURRENT_PASSWORD');
     }
 
     if (currentPassword === newPassword) {
-      throw new UnauthorizedException('New password must differ');
+      throw new UnauthorizedException('PASSWORD_SAME');
     }
 
     const hashedPassword = await bcrypt.hash(newPassword, 10);

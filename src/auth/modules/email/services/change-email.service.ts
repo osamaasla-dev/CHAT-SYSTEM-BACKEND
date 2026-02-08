@@ -4,7 +4,7 @@ import { EmailLoggingService } from './email-logging.service';
 import { EMAIL_RATE_LIMITS } from '../constants/rate-limit.constants';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
 import { MailService } from 'src/mail/mail.service';
-import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
+import { UserAuthEmailService } from 'src/users/features/credentials/user-auth-email.service';
 @Injectable()
 export class ChangeEmailService {
   private readonly logger = new Logger(ChangeEmailService.name);
@@ -26,7 +26,7 @@ export class ChangeEmailService {
         newEmail,
         'NEW_EMAIL_REQUIRED',
       );
-      throw new BadRequestException('New email is required');
+      throw new BadRequestException('EMAIL_REQUIRED');
     }
     const user = await this.usersService.findById(userId);
     if (!user) {
@@ -36,9 +36,41 @@ export class ChangeEmailService {
         newEmail,
         'USER_NOT_FOUND',
       );
-      throw new BadRequestException();
+      throw new BadRequestException('USER_NOT_FOUND');
     }
     this.logger.log('Change email started');
+
+    if (user.email === newEmail) {
+      await this.emailLoggingService.emailChangeFailed(
+        userId,
+        newEmail,
+        'EMAIL_SAME_AS_CURRENT',
+      );
+      throw new BadRequestException('EMAIL_SAME');
+    }
+
+    const existingUser = await this.usersService.findByEmail(newEmail);
+    if (existingUser) {
+      this.logger.warn('Email already in use');
+      await this.emailLoggingService.emailChangeFailed(
+        userId,
+        newEmail,
+        'EMAIL_ALREADY_IN_USE',
+      );
+      throw new BadRequestException('EMAIL_USED');
+    }
+
+    const pendingEmailOwner =
+      await this.usersService.findByPendingEmail(newEmail);
+    if (pendingEmailOwner && pendingEmailOwner?.id !== userId) {
+      this.logger.warn('Email already pending verification');
+      await this.emailLoggingService.emailChangeFailed(
+        userId,
+        newEmail,
+        'EMAIL_ALREADY_PENDING_FOR_ANOTHER_USER',
+      );
+      throw new BadRequestException('EMAIL_USED');
+    }
 
     const { limit, windowSeconds, keyPrefix } = EMAIL_RATE_LIMITS.CHANGE_EMAIL;
 
@@ -64,15 +96,13 @@ export class ChangeEmailService {
       });
 
       await this.emailLoggingService.emailChangeRequested(userId, newEmail);
-
-      return { message: 'Verification email sent to new address' };
     } catch (error) {
       await this.emailLoggingService.emailChangeFailed(
         user.id,
         newEmail,
         (error as Error).message,
       );
-      throw new BadRequestException();
+      throw new BadRequestException('FAILED');
     }
   }
 }

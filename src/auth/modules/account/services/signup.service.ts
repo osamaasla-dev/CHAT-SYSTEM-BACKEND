@@ -5,8 +5,8 @@ import { UserStatus } from '@prisma/client';
 import { ACCOUNT_RATE_LIMITS } from '../constants/rate-limit.constants';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
 import { AccountLoggingService } from './account-logging.service';
-import { UserAuthEmailService } from 'src/users/features/auth/user-auth-email.service';
-import { UserAuthAccountService } from 'src/users/features/auth/user-auth-account.service';
+import { UserAuthEmailService } from 'src/users/features/credentials/user-auth-email.service';
+import { UserAuthAccountService } from 'src/users/features/credentials/user-auth-account.service';
 
 @Injectable()
 export class SignupService {

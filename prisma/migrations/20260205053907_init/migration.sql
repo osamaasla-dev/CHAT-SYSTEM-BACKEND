@@ -132,21 +132,28 @@ CREATE TABLE "MessageReaction" (
 );
 
 -- CreateTable
-CREATE TABLE "UserSettings" (
+CREATE TABLE "PrivacySettings" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "userId" TEXT NOT NULL,
-    "onlineVisibility" TEXT NOT NULL DEFAULT 'FRIENDS',
-    "readReceiptsVisibility" TEXT NOT NULL DEFAULT 'FRIENDS',
-    "profileVisibility" TEXT NOT NULL DEFAULT 'FRIENDS',
+    "onlineVisibility" BOOLEAN NOT NULL DEFAULT true,
+    "lastSeenVisibility" BOOLEAN NOT NULL DEFAULT true,
+    "readReceiptsVisibility" BOOLEAN NOT NULL DEFAULT true,
+    "avatarVisibility" TEXT NOT NULL DEFAULT 'CONTACTS',
+    "allowDirectMessages" TEXT NOT NULL DEFAULT 'ALL',
+    "usernameSearch" TEXT NOT NULL DEFAULT 'ALL',
+    "updatedAt" DATETIME NOT NULL,
+    CONSTRAINT "PrivacySettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+);
+
+-- CreateTable
+CREATE TABLE "NotificationSettings" (
+    "id" TEXT NOT NULL PRIMARY KEY,
+    "userId" TEXT NOT NULL,
     "messageNotifications" BOOLEAN NOT NULL DEFAULT true,
     "soundNotifications" BOOLEAN NOT NULL DEFAULT true,
     "notifyOnMentions" BOOLEAN NOT NULL DEFAULT true,
-    "allowDm" TEXT NOT NULL DEFAULT 'ALL',
-    "allowSearch" TEXT NOT NULL DEFAULT 'ALL',
-    "themePreference" TEXT NOT NULL DEFAULT 'SYSTEM',
-    "statusEmoji" TEXT,
     "updatedAt" DATETIME NOT NULL,
-    CONSTRAINT "UserSettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "NotificationSettings_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
@@ -163,39 +170,25 @@ CREATE TABLE "Notification" (
 );
 
 -- CreateTable
-CREATE TABLE "UserBlock" (
+CREATE TABLE "Block" (
     "id" TEXT NOT NULL PRIMARY KEY,
     "blockerId" TEXT NOT NULL,
     "blockedId" TEXT NOT NULL,
     "reason" TEXT,
     "expiresAt" DATETIME,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "UserBlock_blockerId_fkey" FOREIGN KEY ("blockerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "UserBlock_blockedId_fkey" FOREIGN KEY ("blockedId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "Block_blockerId_fkey" FOREIGN KEY ("blockerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "Block_blockedId_fkey" FOREIGN KEY ("blockedId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateTable
-CREATE TABLE "FriendRequest" (
+CREATE TABLE "Contact" (
     "id" TEXT NOT NULL PRIMARY KEY,
-    "senderId" TEXT NOT NULL,
-    "receiverId" TEXT NOT NULL,
-    "status" TEXT NOT NULL DEFAULT 'PENDING',
-    "message" TEXT,
-    "respondedAt" DATETIME,
+    "ownerId" TEXT NOT NULL,
+    "contactId" TEXT NOT NULL,
     "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT "FriendRequest_senderId_fkey" FOREIGN KEY ("senderId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "FriendRequest_receiverId_fkey" FOREIGN KEY ("receiverId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
-);
-
--- CreateTable
-CREATE TABLE "Friendship" (
-    "id" TEXT NOT NULL PRIMARY KEY,
-    "userAId" TEXT NOT NULL,
-    "userBId" TEXT NOT NULL,
-    "createdAt" DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    "favorite" BOOLEAN NOT NULL DEFAULT false,
-    CONSTRAINT "Friendship_userAId_fkey" FOREIGN KEY ("userAId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
-    CONSTRAINT "Friendship_userBId_fkey" FOREIGN KEY ("userBId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
+    CONSTRAINT "Contact_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE,
+    CONSTRAINT "Contact_contactId_fkey" FOREIGN KEY ("contactId") REFERENCES "User" ("id") ON DELETE CASCADE ON UPDATE CASCADE
 );
 
 -- CreateIndex
@@ -259,7 +252,10 @@ CREATE INDEX "MessageReaction_userId_idx" ON "MessageReaction"("userId");
 CREATE UNIQUE INDEX "MessageReaction_messageId_userId_emoji_key" ON "MessageReaction"("messageId", "userId", "emoji");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserSettings_userId_key" ON "UserSettings"("userId");
+CREATE UNIQUE INDEX "PrivacySettings_userId_key" ON "PrivacySettings"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "NotificationSettings_userId_key" ON "NotificationSettings"("userId");
 
 -- CreateIndex
 CREATE INDEX "Notification_userId_readAt_idx" ON "Notification"("userId", "readAt");
@@ -268,28 +264,16 @@ CREATE INDEX "Notification_userId_readAt_idx" ON "Notification"("userId", "readA
 CREATE INDEX "Notification_type_idx" ON "Notification"("type");
 
 -- CreateIndex
-CREATE INDEX "UserBlock_blockedId_idx" ON "UserBlock"("blockedId");
+CREATE INDEX "Block_blockedId_idx" ON "Block"("blockedId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "UserBlock_blockerId_blockedId_key" ON "UserBlock"("blockerId", "blockedId");
+CREATE UNIQUE INDEX "Block_blockerId_blockedId_key" ON "Block"("blockerId", "blockedId");
 
 -- CreateIndex
-CREATE INDEX "FriendRequest_receiverId_idx" ON "FriendRequest"("receiverId");
+CREATE INDEX "Contact_ownerId_idx" ON "Contact"("ownerId");
 
 -- CreateIndex
-CREATE INDEX "FriendRequest_status_idx" ON "FriendRequest"("status");
+CREATE INDEX "Contact_contactId_idx" ON "Contact"("contactId");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "FriendRequest_senderId_receiverId_key" ON "FriendRequest"("senderId", "receiverId");
-
--- CreateIndex
-CREATE INDEX "Friendship_userAId_idx" ON "Friendship"("userAId");
-
--- CreateIndex
-CREATE INDEX "Friendship_userBId_idx" ON "Friendship"("userBId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Friendship_userAId_userBId_key" ON "Friendship"("userAId", "userBId");
-
--- CreateIndex
-CREATE UNIQUE INDEX "Friendship_userBId_userAId_key" ON "Friendship"("userBId", "userAId");
+CREATE UNIQUE INDEX "Contact_ownerId_contactId_key" ON "Contact"("ownerId", "contactId");

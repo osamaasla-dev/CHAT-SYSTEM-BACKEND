@@ -1,7 +1,7 @@
-import { Injectable, Logger } from '@nestjs/common';
+import { BadRequestException, Injectable, Logger } from '@nestjs/common';
 import { RateLimitService } from 'src/common/services/rate-limit.service';
 import { PASSWORD_RATE_LIMITS } from '../constants/rate-limit.constants';
-import { UserAuthPasswordService } from 'src/users/features/auth/user-auth-password.service';
+import { UserAuthPasswordService } from 'src/users/features/credentials/user-auth-password.service';
 import { PasswordLoggingService } from './password-logging.service';
 import { SessionRevocationService } from 'src/sessions/services/session-revocation.service';
 
@@ -62,7 +62,7 @@ export class ChangePasswordService {
         userId,
         (error as Error).message,
       );
-      throw error;
+      throw new BadRequestException('FAILED');
     }
   }
 }

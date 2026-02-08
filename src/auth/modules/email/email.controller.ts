@@ -2,7 +2,7 @@ import {
   Body,
   Controller,
   Get,
-  Post,
+  Patch,
   Query,
   Req,
   Res,
@@ -31,15 +31,9 @@ export class EmailController {
     private readonly verifyEmailService: VerifyEmailService,
   ) {}
 
-  @Post('email/change')
+  @Patch('email/change')
   @UseGuards(JwtAuthGuard, JwtSessionGuard, RolesGuard)
   @Roles(UserRole.USER)
-  @Throttle({
-    default: {
-      ttl: EMAIL_RATE_LIMITS.CHANGE_EMAIL.windowSeconds,
-      limit: EMAIL_RATE_LIMITS.CHANGE_EMAIL.limit,
-    },
-  })
   async changeEmail(
     @CurrentUser() user: CurrentUserType,
     @Body() dto: ChangeEmailDto,

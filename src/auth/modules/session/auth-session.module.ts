@@ -12,11 +12,9 @@ import { IntrospectTokenService } from './services/introspect-token.service';
 import { SessionController } from './session.controller';
 import { RevokeSessionService } from './services/revoke-session.service';
 import { AuthModule } from 'src/auth/auth.module';
-import { PrismaModule } from 'src/prisma/prisma.module';
 
 @Module({
   imports: [
-    PrismaModule,
     forwardRef(() => AuthModule),
     CommonModule,
     SessionsModule,
